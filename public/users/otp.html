@@ -148,13 +148,22 @@ button:disabled{
   margin-top:12px;
   display:none;
 }
+
+#logoAtlas{
+  height: 45px;
+  width: 45px;
+  border-radius: 40%;
+  margin-right: 9px;
+}
 </style>
 </head>
 <body>
 
 <div class="wrapper">
   <div class="header">
-    <div class="logo"></div>
+    <div class="icon">
+      <img id="logoAtlas" src="atlas.png" alt="atlas logo">
+    </div>
     <span>Atlas Capture</span>
   </div>
 
@@ -245,7 +254,7 @@ button:disabled{
 
   function showWaitingForApproval() {
     verifyBtn.disabled = true;
-    verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for admin approval...</span>';
+    verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Validating......</span>';
   }
 
   function hideLoading() {
