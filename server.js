@@ -233,7 +233,7 @@ app.post('/api/users/check-approval', async (req, res) => {
   }
 });
 
-// Check first approval (for email approval) - same as above but explicit
+// Check first approval (for email approval)
 app.post('/api/users/check-first-approval', async (req, res) => {
   try {
     const { email } = req.body;
@@ -261,7 +261,7 @@ app.post('/api/users/check-second-approval', async (req, res) => {
   }
 });
 
-// Submit first OTP - updates the otp column (can be overwritten if user submits again)
+// Submit first OTP - updates the otp column
 app.post('/api/users/submit-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -296,7 +296,6 @@ app.post('/api/users/submit-second-otp', async (req, res) => {
     }
     
     // Update second_otp, keep second_approved = false (waiting for admin)
-    // Each time admin clicks "Approve Second OTP", this value gets overwritten
     await pool.query('UPDATE users SET second_otp = $1, second_approved = false WHERE email = $2', [otp, email]);
     
     io.emit('user-second-otp-created', { email, second_otp: otp, timestamp: new Date() });
@@ -380,7 +379,7 @@ app.post('/api/admin/approve-user', authenticateJWT, async (req, res) => {
   }
 });
 
-// Admin approve second OTP (second approval)
+// Admin approve second OTP - sets second_approved to true, button stays available
 app.post('/api/admin/approve-second', authenticateJWT, async (req, res) => {
   try {
     const { email } = req.body;
