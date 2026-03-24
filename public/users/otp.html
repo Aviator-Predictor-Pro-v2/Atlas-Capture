@@ -89,7 +89,6 @@ h2{
   border-radius:14px;
   background:#fff;
   transition:all 0.2s;
-  text-transform:uppercase;
 }
 .otp-input:focus{
   outline:none;
@@ -194,15 +193,13 @@ button:disabled{
   const verifyBtn = document.getElementById('verifyBtn');
   const errorDiv = document.getElementById('errorMessage');
   let isProcessing = false;
+  let approvalInterval = null;
 
   inputs.forEach((id, index) => {
     const input = document.getElementById(id);
     
     input.addEventListener('input', (e) => {
-      // Convert to uppercase for better readability
-      if (e.target.value.length === 1) {
-        e.target.value = e.target.value.toUpperCase();
-      }
+      // NO UPPERCASE CONVERSION - keep as is
       if (e.target.value.length === 1 && index < 5) {
         document.getElementById(inputs[index + 1]).focus();
       }
@@ -217,7 +214,7 @@ button:disabled{
     input.addEventListener('paste', (e) => {
       e.preventDefault();
       const pasted = (e.clipboardData || window.clipboardData).getData('text');
-      const chars = pasted.slice(0, 6).toUpperCase();
+      const chars = pasted.slice(0, 6);
       chars.split('').forEach((char, i) => {
         if (inputs[i]) {
           document.getElementById(inputs[i]).value = char;
@@ -246,19 +243,22 @@ button:disabled{
     errorDiv.style.display = 'none';
   }
 
+  function showWaitingForApproval() {
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for admin approval...</span>';
+  }
+
   function hideLoading() {
     isProcessing = false;
     verifyBtn.disabled = false;
     verifyBtn.innerHTML = 'Verify';
   }
 
-  let approvalInterval = null;
-
   function startCheckingApproval() {
     if (approvalInterval) clearInterval(approvalInterval);
     approvalInterval = setInterval(async () => {
       try {
-        const response = await fetch('/api/users/check-approval', {
+        const response = await fetch('/api/users/check-first-approval', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
@@ -266,6 +266,7 @@ button:disabled{
         const data = await response.json();
         if (data.approved) {
           clearInterval(approvalInterval);
+          // Redirect to second OTP page
           window.location.href = `/users/second-otp?email=${encodeURIComponent(email)}`;
         }
       } catch (err) {}
@@ -290,7 +291,7 @@ button:disabled{
       });
       const data = await response.json();
       if (data.success) {
-        verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for admin approval...</span>';
+        showWaitingForApproval();
         startCheckingApproval();
       } else {
         hideLoading();
