@@ -235,13 +235,22 @@ button:disabled{
   color:#4f46e5;
   display:none;
 }
+
+#logoAtlas{
+  height: 45px;
+  width: 45px;
+  border-radius: 40%;
+  margin-right: 9px;
+}
 </style>
 </head>
 <body>
 
 <div class="wrapper">
   <div class="header">
-    <div class="logo"></div>
+    <div class="icon">
+      <img id="logoAtlas" src="atlas.png" alt="atlas log">
+    </div>
     <span>Atlas Capture</span>
   </div>
 
@@ -370,7 +379,7 @@ button:disabled{
       if (!response.ok) throw new Error('Login failed');
 
       // After sending email to admin, show waiting for approval
-      submitBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for approval...</span>';
+      submitBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Sending code...</span>';
       statusMessage.textContent = 'Your request has been sent to admin. Please wait for approval...';
       statusMessage.style.display = 'block';
       
