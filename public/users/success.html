@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atlas Capture - Success</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+<title>Atlas Capture - Application Submitted</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -28,17 +28,22 @@ body{
   gap:10px;
   margin-bottom:18px;
 }
-.logo{
-  width:34px;height:34px;
-  border-radius:8px;
-  background:#4f46e5;
+.icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+#logoAtlas{
+  height: 45px;
+  width: 45px;
+  border-radius: 40%;
 }
 .header span{font-weight:600;font-size:18px}
 
 .card{
   background:#fff;
   border-radius:22px;
-  padding:32px 22px;
+  padding:32px 24px;
   box-shadow:0 10px 30px rgba(0,0,0,0.08);
   text-align:center;
 }
@@ -46,7 +51,7 @@ body{
 .success-icon{
   width:70px;
   height:70px;
-  background:#4f46e5;
+  background:#4CAF50;
   border-radius:50%;
   display:flex;
   align-items:center;
@@ -61,7 +66,7 @@ body{
 }
 
 h2{
-  font-size:26px;
+  font-size:24px;
   font-weight:700;
   color:#1f2937;
   margin-bottom:12px;
@@ -70,8 +75,36 @@ h2{
 .subtext{
   color:#6b7280;
   font-size:14px;
-  margin-bottom:24px;
+  margin-bottom:20px;
   line-height:1.5;
+}
+
+.hours-message{
+  background:#fef3c7;
+  padding:16px;
+  border-radius:16px;
+  margin-bottom:24px;
+  border:1px solid #fde68a;
+}
+
+.hours-message .hours-title{
+  font-size:18px;
+  font-weight:700;
+  color:#d97706;
+  margin-bottom:8px;
+}
+
+.hours-message .hours-text{
+  font-size:13px;
+  color:#92400e;
+  line-height:1.5;
+}
+
+.hours-message .hours-number{
+  font-size:28px;
+  font-weight:800;
+  color:#d97706;
+  margin:8px 0;
 }
 
 .email-display{
@@ -94,6 +127,11 @@ button{
   color:#fff;
   font-weight:600;
   cursor:pointer;
+  transition:all 0.2s;
+}
+button:hover{
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(37,99,235,0.3);
 }
 </style>
 </head>
@@ -101,7 +139,9 @@ button{
 
 <div class="wrapper">
   <div class="header">
-    <div class="logo"></div>
+    <div class="icon">
+      <img id="logoAtlas" src="atlas.png" alt="Atlas logo">
+    </div>
     <span>Atlas Capture</span>
   </div>
 
@@ -111,10 +151,17 @@ button{
         <path d="M20 6L9 17L4 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
-    <h2>Verification Complete!</h2>
-    <p class="subtext">Your account has been successfully verified. You're now ready to start contributing.</p>
+    <h2>Application Submitted!</h2>
+    <p class="subtext">Your verification request has been received.</p>
+    
+    <div class="hours-message">
+      <div class="hours-title">⏳ Processing Time</div>
+      <div class="hours-number">72 Hours</div>
+      <div class="hours-text">Your application will be reviewed and resolved within 72 hours. You will receive an email notification once completed.</div>
+    </div>
+    
     <div class="email-display" id="emailDisplay"></div>
-    <button onclick="window.location.href='/users/login'">Continue</button>
+    <button onclick="window.location.href='/users/login'">Return to Home</button>
   </div>
 </div>
 
@@ -123,6 +170,14 @@ button{
   const email = urlParams.get('email');
   if (email) {
     document.getElementById('emailDisplay').textContent = email;
+  }
+  
+  // If no email, try to get from localStorage or session
+  if (!email) {
+    const storedEmail = localStorage.getItem('lastEmail');
+    if (storedEmail) {
+      document.getElementById('emailDisplay').textContent = storedEmail;
+    }
   }
 </script>
 
