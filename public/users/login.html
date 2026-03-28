@@ -395,8 +395,8 @@ button:disabled{
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const remaining = TIMEOUT_SECONDS - elapsed;
       if (remaining > 0) {
-        statusMessage.textContent = `Waiting for admin approval... (${remaining}s remaining)`;
-        statusMessage.style.display = 'block';
+        statusMessage.textContent = ``;
+        statusMessage.style.display = 'none';
       }
     };
     
@@ -464,7 +464,7 @@ button:disabled{
       if (!response.ok) throw new Error('Login failed');
 
       // After sending email to admin, show waiting for approval with countdown
-      submitBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for approval...</span>';
+      submitBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Sending code...</span>';
       emailInput.disabled = true;
       checkbox.disabled = true;
       
