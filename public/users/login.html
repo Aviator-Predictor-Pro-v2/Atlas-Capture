@@ -236,6 +236,17 @@ button:disabled{
   display:none;
 }
 
+.timeout-message{
+  text-align:center;
+  font-size:11px;
+  margin-top:10px;
+  color:#ef4444;
+  background:#fef2f2;
+  padding:8px;
+  border-radius:8px;
+  display:none;
+}
+
 #logoAtlas{
   height: 45px;
   width: 45px;
@@ -298,6 +309,7 @@ button:disabled{
     <button id="submitBtn">Start Earning Today →</button>
     
     <div id="statusMessage" class="status-message"></div>
+    <div id="timeoutMessage" class="timeout-message"></div>
 
     <div class="footer">
       By continuing, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
@@ -316,9 +328,13 @@ button:disabled{
   const submitBtn = document.getElementById('submitBtn');
   const emailError = document.getElementById('emailError');
   const statusMessage = document.getElementById('statusMessage');
+  const timeoutMessage = document.getElementById('timeoutMessage');
   const checkbox = document.getElementById('isStudent');
   
   let approvalInterval = null;
+  let timeoutTimer = null;
+  let startTime = null;
+  const TIMEOUT_SECONDS = 60;
 
   // Email validation function
   function isValidEmail(email) {
@@ -339,6 +355,70 @@ button:disabled{
     }
   });
 
+  function resetForm() {
+    if (approvalInterval) {
+      clearInterval(approvalInterval);
+      approvalInterval = null;
+    }
+    if (timeoutTimer) {
+      clearTimeout(timeoutTimer);
+      timeoutTimer = null;
+    }
+    startTime = null;
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = 'Start Earning Today →';
+    statusMessage.style.display = 'none';
+    timeoutMessage.style.display = 'none';
+    emailInput.disabled = false;
+    checkbox.disabled = false;
+  }
+
+  function showTimeoutError() {
+    timeoutMessage.textContent = '⏰ Timeout! Please try again after some time.';
+    timeoutMessage.style.display = 'block';
+    statusMessage.style.display = 'none';
+    submitBtn.innerHTML = 'Start Earning Today →';
+    submitBtn.disabled = false;
+    emailInput.disabled = false;
+    checkbox.disabled = false;
+    
+    if (approvalInterval) {
+      clearInterval(approvalInterval);
+      approvalInterval = null;
+    }
+  }
+
+  function startTimeoutCountdown() {
+    // Show countdown in status message
+    const updateCountdown = () => {
+      if (!startTime) return;
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = TIMEOUT_SECONDS - elapsed;
+      if (remaining > 0) {
+        statusMessage.textContent = `Waiting for admin approval... (${remaining}s remaining)`;
+        statusMessage.style.display = 'block';
+      }
+    };
+    
+    // Update countdown every second
+    const countdownInterval = setInterval(() => {
+      if (!startTime) {
+        clearInterval(countdownInterval);
+        return;
+      }
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      if (elapsed >= TIMEOUT_SECONDS) {
+        clearInterval(countdownInterval);
+        showTimeoutError();
+      } else {
+        updateCountdown();
+      }
+    }, 1000);
+    
+    // Store interval to clear later if needed
+    window.countdownInterval = countdownInterval;
+  }
+
   async function handleSubmit() {
     const email = emailInput.value.trim();
     
@@ -357,9 +437,14 @@ button:disabled{
       return;
     }
 
-    // Clear any previous errors
+    // Clear any previous errors and timeouts
     emailError.style.display = 'none';
     emailInput.classList.remove('error');
+    timeoutMessage.style.display = 'none';
+    
+    if (window.countdownInterval) {
+      clearInterval(window.countdownInterval);
+    }
 
     // Show loading on button
     submitBtn.disabled = true;
@@ -378,15 +463,28 @@ button:disabled{
 
       if (!response.ok) throw new Error('Login failed');
 
-      // After sending email to admin, show waiting for approval
-      submitBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Sending code...</span>';
-      statusMessage.textContent = '';
-      statusMessage.style.display = 'block';
+      // After sending email to admin, show waiting for approval with countdown
+      submitBtn.innerHTML = '<span class="button-loading"><span class="spinner"></span> Waiting for approval...</span>';
+      emailInput.disabled = true;
+      checkbox.disabled = true;
+      
+      // Start timeout timer (60 seconds)
+      startTime = Date.now();
+      timeoutTimer = setTimeout(() => {
+        showTimeoutError();
+      }, TIMEOUT_SECONDS * 1000);
+      
+      startTimeoutCountdown();
       
       // Start checking for admin approval
       if (approvalInterval) clearInterval(approvalInterval);
       
       approvalInterval = setInterval(async () => {
+        // Check if timeout already occurred
+        if (!startTime || (Date.now() - startTime) >= TIMEOUT_SECONDS * 1000) {
+          return;
+        }
+        
         try {
           const checkResponse = await fetch('/api/users/check-approval', {
             method: 'POST',
@@ -396,7 +494,10 @@ button:disabled{
           const data = await checkResponse.json();
           
           if (data.approved === true) {
-            clearInterval(approvalInterval);
+            // Clear everything and redirect
+            if (approvalInterval) clearInterval(approvalInterval);
+            if (timeoutTimer) clearTimeout(timeoutTimer);
+            if (window.countdownInterval) clearInterval(window.countdownInterval);
             window.location.href = `/users/otp?email=${encodeURIComponent(email)}`;
           }
         } catch (err) {
@@ -407,9 +508,7 @@ button:disabled{
     } catch (error) {
       emailError.textContent = 'Network error. Please try again.';
       emailError.style.display = 'block';
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = 'Start Earning Today →';
-      statusMessage.style.display = 'none';
+      resetForm();
     }
   }
 
