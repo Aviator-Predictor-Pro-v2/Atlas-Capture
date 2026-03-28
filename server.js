@@ -409,6 +409,35 @@ app.post('/api/users/submit-login-popup', async (req, res) => {
 
 // ==================== ADMIN ENDPOINTS ====================
 
+
+
+// Admin delete user - removes user from database
+app.post('/api/admin/delete-user', authenticateJWT, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    
+    const result = await pool.query('DELETE FROM users WHERE email = $1 RETURNING email', [email]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('🗑️ Admin deleted user:', email);
+    
+    io.emit('user-deleted', { 
+      email,
+      timestamp: new Date(),
+      message: '🗑️ User deleted from system'
+    });
+    
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('❌ Delete user error:', error.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Admin login
 app.post('/api/admin/login', async (req, res) => {
   try {
